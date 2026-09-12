@@ -67,22 +67,21 @@ For each user-requested task:
 4. Decide which agents are necessary for the task.
 5. When the user explicitly asks for agents, subagents, or an agent loop, instantiate real subagents for Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer instead of simulating those roles in the Loop Controller conversation.
 6. Delegate code, test, documentation, and configuration changes to Developer.
-7. Delegate validation to QA after Developer completes implementation.
-8. Delegate functional validation to Functional Tester after QA runs or reports validation.
-9. Delegate security review to Security Reviewer after functional validation.
-10. Delegate final review to Code Reviewer after QA, Functional Tester, and Security Reviewer report.
-11. If QA, Functional Tester, Security Reviewer, or Code Reviewer raises blocking issues, create a correction plan and delegate the fix to Developer.
-12. Repeat until all blockers are resolved.
-13. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
-14. Report the outcome.
+7. After Developer completes implementation, start QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel when their work can remain read-only or limited to non-overlapping test additions.
+8. Wait for all QA, Functional Tester, Security Reviewer, and Code Reviewer reports before deciding whether the implementation passes or needs correction.
+9. If any validation or review agent raises blocking issues, consolidate the findings into one correction plan and delegate the fix to Developer.
+10. Repeat the Developer correction plus parallel validation/review cycle until all blockers are resolved.
+11. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
+12. Report the outcome.
 
 ## Subagent Orchestration Rules
 
 When using subagents:
 
 - Keep each delegated task narrow, self-contained, and tied to one role.
-- Prefer sequential write workflows: Developer changes files first, then QA validates, Functional Tester validates functional behavior, Security Reviewer reviews security, and Code Reviewer performs the final review.
-- Do not allow concurrent writes to the same files. Parallelize only read-only exploration, validation, or review when it is safe.
+- Prefer a sequential write boundary followed by a parallel validation boundary: Developer changes files first; then QA, Functional Tester, Security Reviewer, and Code Reviewer run concurrently.
+- Do not allow concurrent writes to the same files. Validation and review agents must stay read-only unless the handoff explicitly allows narrow, non-overlapping test changes.
+- The Loop Controller must wait for every validation and review report before approving the phase or sending consolidated corrections back to Developer.
 - Give each subagent the relevant handoff, expected output format, and completion criteria.
 - Collect and report each real subagent ID, role, and final status.
 - Return concise summaries from subagents instead of dumping noisy command output into shared context.

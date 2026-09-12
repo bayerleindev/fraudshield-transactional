@@ -50,7 +50,16 @@ Prioritize:
 - Explainable reasons in API responses.
 - Persistence of transaction, decision, and reasons after successful evaluation.
 - Invalid payload handling.
-- Local reproducibility through Gradle and Docker Compose.
+- Local reproducibility through Docker Compose, a dockerized application runtime, and executable HTTP requests.
+
+For phases that expose HTTP endpoints, the Functional Tester must validate the running application from outside the JVM:
+
+- Build or use the project Docker image for the application when a Dockerfile or Compose app service is available.
+- Start PostgreSQL and the application through Docker or Docker Compose.
+- Run `curl` requests against the running endpoint for representative success and failure scenarios.
+- Verify HTTP status codes and response bodies from the `curl` output.
+- Prefer database queries or repository-backed integration evidence to confirm persistence after a successful API call.
+- Treat MockMvc-only validation as insufficient for endpoint functional testing unless the repository has no dockerized app runtime yet; in that case, report the missing Docker app runtime as a functional coverage gap.
 
 For phases that expose only domain or infrastructure internals, validate the nearest executable behavior and clearly mark external functional testing as not applicable.
 
@@ -76,6 +85,7 @@ Fail validation when:
 - A successful implemented evaluation does not persist required audit data.
 - Functional/integration tests fail.
 - Local run instructions or commands required for the phase are not reproducible.
+- A phase with an HTTP endpoint has a dockerized app runtime but cannot be validated with `curl`.
 
 Use `NOT_APPLICABLE` only when the phase has no functional surface yet and the implemented scope is still adequately covered by lower-level tests.
 

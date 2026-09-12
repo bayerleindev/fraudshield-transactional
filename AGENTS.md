@@ -106,7 +106,7 @@ Project-specific agents live under `.agents/`:
 
 Agent files use YAML frontmatter for discoverability and plain Markdown for operating instructions.
 
-Use the Loop Controller as the entry point for non-trivial implementation tasks. The Loop Controller is planning-only: it creates the implementation plan, delegates actual changes to Developer, delegates validation to QA, delegates functional validation to Functional Tester, delegates security review to Security Reviewer, delegates review to Code Reviewer, and then updates shared context.
+Use the Loop Controller as the entry point for non-trivial implementation tasks. The Loop Controller is planning-only: it creates the implementation plan, delegates actual changes to Developer, then runs QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel after Developer finishes. The Loop Controller waits for all validation and review reports before deciding whether to send consolidated corrections back to Developer, and updates shared context at the end.
 
 When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required workflow subagents is pre-approved. Instantiate Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer subagents directly without asking for additional conversational confirmation.
 

@@ -151,7 +151,10 @@ The Loop Controller must update this section when project decisions, constraints
 - 2026-09-12: Agent instructions were aligned with official subagent guidance: keep delegated tasks narrow, avoid concurrent writes, prefer read/test/review subagents for QA and Code Reviewer, and treat empty or interrupted subagent results as inconclusive.
 - 2026-09-12: Phase 4 amount-rule policy is `VERY_HIGH_AMOUNT` supersedes `HIGH_AMOUNT` for MVP 1. Transactions with amount `>= 20000` produce `VERY_HIGH_AMOUNT` and do not also produce `HIGH_AMOUNT`.
 - 2026-09-12: When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer subagents is pre-approved. Do not ask for additional conversational confirmation before spawning them.
-- 2026-09-12: The project agent loop now includes Functional Tester for executable user-facing/API behavior and Security Reviewer for MVP-appropriate security risks before final Code Reviewer approval.
+- 2026-09-12: The project agent loop now includes Functional Tester for executable user-facing/API behavior and Security Reviewer for MVP-appropriate security risks.
+- 2026-09-12: After Developer completes implementation, QA, Functional Tester, Security Reviewer, and Code Reviewer run in parallel when their scopes are read-only or otherwise non-overlapping. The Loop Controller waits for all reports before deciding whether to send consolidated corrections back to Developer.
+- 2026-09-12: For API phases, Functional Tester must start the dockerized application through Docker or Docker Compose and validate endpoints with real `curl` requests. MockMvc-only validation is insufficient when a dockerized app runtime exists.
+- 2026-09-12: Phase 5 missing customer behavior is `400 CUSTOMER_NOT_FOUND`; missing customers are not treated as `NEW_ACCOUNT` risk context in MVP 1.
 
 ### Current Milestone
 
@@ -159,7 +162,7 @@ MVP 1 - Risk Decision API.
 
 ### Current Status
 
-Phase 4 - Risk Engine is completed.
+Phase 5 - Transaction Evaluation API is completed.
 
 Implemented:
 
@@ -178,6 +181,14 @@ Implemented:
 - Initial MVP 1 risk rules for high amount, very high amount, new device, untrusted device, new beneficiary, recent password change, and new account.
 - Risk engine returns explainable `RiskAssessment` output with score aggregation, reason codes/descriptions/impacts, `rulesVersion = "v1"`, and the supplied evaluation timestamp.
 - Unit tests for risk rule behavior, amount boundaries, score aggregation, decision thresholds, no-risk approval, REVIEW and DENY crossings, very-high amount supersession, and evaluation context invariants.
+- `POST /transactions/evaluate` REST endpoint.
+- `EvaluateTransactionService` orchestration for request domain mapping, customer/device/beneficiary context lookup, risk evaluation, and audit persistence.
+- API error handling for validation errors, malformed request bodies, missing customer, duplicate transaction IDs, and persistence conflicts.
+- Transactional persistence of transaction payload, risk decision, and risk reasons.
+- Spring beans for `RiskEngine` and UTC `Clock`.
+- Dockerized application runtime with a multi-stage `Dockerfile`, `.dockerignore`, and Docker Compose `app` service wired to PostgreSQL.
+- Docker Compose app and PostgreSQL published ports are bound to `127.0.0.1`.
+- Endpoint tests for successful evaluation, `APPROVE`, `CHALLENGE`, `REVIEW`, `DENY`, invalid payload, invalid payment method, missing customer, duplicate transaction ID, and audit persistence.
 
 Validated:
 
@@ -192,20 +203,30 @@ Validated:
 - 2026-09-12: `./gradlew bootRun --args='--server.port=0'` starts successfully with Flyway validating 7 migrations and JPA schema validation passing.
 - 2026-09-12: Phase 4 `./gradlew test --tests 'com.fraudshield.transactional.risk.*'` passes.
 - 2026-09-12: Phase 4 `./gradlew test` passes.
+- 2026-09-12: Phase 5 `./gradlew test --tests 'com.fraudshield.transactional.transaction.api.TransactionEvaluationControllerTest'` passes.
+- 2026-09-12: Phase 5 `./gradlew test` passes.
+- 2026-09-12: Phase 5 `./gradlew build` passes.
+- 2026-09-12: `docker compose config --services` reports `postgres` and `app`.
+- 2026-09-12: `docker compose config` confirms app and PostgreSQL host port bindings use `127.0.0.1`.
+- 2026-09-12: `docker compose up --build -d app` starts PostgreSQL and the application container.
+- 2026-09-12: Functional Tester validated `POST /transactions/evaluate` through Docker Compose plus `curl`, including a successful request, invalid payload, missing customer, and database persistence checks.
 
 Review:
 
 - QA status: PASS.
+- Functional Tester status: PASS.
+- Security Reviewer status: APPROVED.
 - Code Reviewer status: APPROVED.
 - Phase 3 real-subagent orchestration audit: Loop Controller `01a0976f-c68c-7fb3-b7ff-59b3d2bafe23`, Developer `01a09770-31e4-7670-8e02-7e830059b2d6`, QA `01a09773-3147-70f0-9d6c-f80cbd5500d5`, Code Reviewer `01a09775-5b7d-7653-a7f6-eb9bd5da04e0`.
 - Phase 4 real-subagent orchestration audit: Developer `01a09785-e0c2-7423-b107-17677504113d`, QA `01a09789-5419-7823-b975-672fd74948b1`, Code Reviewer `01a0978b-3973-7a31-8710-8f0b238d67b4`.
+- Phase 5 real-subagent orchestration audit: Loop Controller `01a09793-9bbd-7f80-a2b7-aabb5c03539d`, Developer `01a09795-506e-7431-ab92-a1f6ffda0ff9`, QA `01a09799-eb19-7663-8f39-7bc69c4ec9a8`, Functional Tester `01a0979b-9f42-7880-9199-57062a1c83ec`, Security Reviewer `01a0979c-a890-7702-be51-96e177690871`, Docker correction Developer `01a0979f-a5f6-71a0-b67d-4520a71874dc`, parallel QA `01a097a3-15cd-7ec0-b491-d42f2c1326f0`, parallel Functional Tester `01a097a3-1615-7211-8412-a2ad292f9aa6`, parallel Security Reviewer `01a097a3-1637-7622-a8ff-fe3c42918efa`, parallel Code Reviewer `01a097a3-1663-7f42-9eec-62c8427e158b`, consolidated correction Developer `01a097a5-f39d-72f3-a599-f2d1a7419518`, final QA `01a097a7-03af-7b71-b2f2-f1ca2abe06ce`, final Functional Tester `01a097a7-03e1-7e81-9f36-ce60903055bb`, final Security Reviewer `01a097a7-0403-7b42-a478-4487e7b28bd3`, final Code Reviewer `01a097a7-0426-7f52-ba35-3362b7db4c02`.
 
 ### Open Risks
 
-- Port `8080` was already in use during local validation. Use `./gradlew bootRun --args='--server.port=0'` or free port `8080` when needed.
-- Database schema is implemented for MVP 1 persistence. The REST API contract is still pending later phases.
+- Port `8080` must be free for `docker compose up --build -d app` because the app service maps `127.0.0.1:8080:8080`. Use `./gradlew bootRun --args='--server.port=0'` for non-Docker local startup when needed.
 - Persistence tests are wired into the build and require the Docker Compose PostgreSQL service for local validation.
 - Local Testcontainers execution was blocked by the machine-level `~/.testcontainers.properties` forcing a Docker client strategy that does not work with the active Docker Desktop context. Phase 3 persistence validation used the Docker Compose PostgreSQL service instead.
+- Runtime Docker image currently uses the default container user. Security Reviewer marked this non-blocking for MVP local development; consider adding a non-root runtime user in a future hardening pass.
 
 ### Useful References
 

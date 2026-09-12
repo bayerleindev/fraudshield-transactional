@@ -40,7 +40,7 @@ If the requested phase is a name rather than a path, resolve it against `docs/mv
 
 The Loop Controller must create real subagents, not simulated roles. Report each subagent id, nickname if available, role, and final status.
 
-Create and sequence these subagents:
+Create and sequence these subagents. Developer runs first. After Developer reports, QA, Functional Tester, Security Reviewer, and Code Reviewer should run in parallel when their work is read-only or limited to explicitly authorized, non-overlapping test changes. The Loop Controller must wait for all validation and review reports before deciding whether to delegate corrections back to Developer.
 
 1. Developer subagent
    - Follow `.agents/developer.md`.
@@ -50,27 +50,27 @@ Create and sequence these subagents:
 
 2. QA subagent
    - Follow `.agents/qa.md`.
-   - Validate behavior and tests after Developer finishes.
+   - Validate behavior and tests in the parallel validation/review wave after Developer finishes.
    - Prefer read/test work.
    - Do not modify production code.
    - Report status as `PASS` or `FAIL`, including commands run and gaps found.
 
 3. Functional Tester subagent
    - Follow `.agents/functional-tester.md`.
-   - Validate executable functional flows after QA finishes.
+   - Validate executable functional flows in the parallel validation/review wave after Developer finishes.
    - Prefer read/test/run work.
    - Do not modify production code.
    - Report status as `PASS`, `FAIL`, or `NOT_APPLICABLE`, including commands run, scenarios verified, and coverage gaps found.
 
 4. Security Reviewer subagent
    - Follow `.agents/security-reviewer.md`.
-   - Review MVP-appropriate security risks after functional validation.
+   - Review MVP-appropriate security risks in the parallel validation/review wave after Developer finishes.
    - Stay read-only.
    - Lead with blocking security findings, then non-blocking findings and security test gaps.
 
 5. Code Reviewer subagent
    - Follow `.agents/code-reviewer.md`.
-   - Perform final review after QA, Functional Tester, and Security Reviewer complete.
+   - Perform code review in the parallel validation/review wave after Developer finishes.
    - Prefer read-only review.
    - Lead with blocking findings, then non-blocking findings and test gaps.
 
@@ -78,8 +78,9 @@ Create and sequence these subagents:
 
 - Keep tasks narrow and non-overlapping.
 - Avoid concurrent writes to the same files.
-- Run Developer before QA, QA before Functional Tester, Functional Tester before Security Reviewer, and Security Reviewer before Code Reviewer unless the Loop Controller explicitly explains a safe parallel read-only split.
-- If QA, Functional Tester, Security Reviewer, or Code Reviewer finds a blocker, send a correction handoff to the Developer subagent, then repeat validation and review until no blockers remain or the workflow is genuinely blocked.
+- Run Developer before validation and review agents. After Developer completes, run QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel when their scopes are read-only or otherwise non-overlapping.
+- Wait for all QA, Functional Tester, Security Reviewer, and Code Reviewer reports before deciding whether the implementation passes.
+- If QA, Functional Tester, Security Reviewer, or Code Reviewer finds a blocker, consolidate all blocking findings into one correction handoff to the Developer subagent, then repeat the Developer correction plus parallel validation/review cycle until no blockers remain or the workflow is genuinely blocked.
 - The Loop Controller may update only `.agents/shared-context.md`, and only at the end of the workflow.
 - Respect existing user changes in the working tree. Do not revert unrelated changes.
 
