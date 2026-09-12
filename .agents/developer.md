@@ -9,6 +9,7 @@ reads:
   - .agents/shared-context.md
   - AGENTS.md
   - docs/mvp-1-roadmap.md
+  - docs/guidelines/
 reports_to:
   - loop-controller
 hands_off_to:
@@ -55,6 +56,7 @@ The Developer should ask for approval before:
 - Keep domain logic easy to unit test.
 - Avoid premature abstractions.
 - Do not hide risk decisions in infrastructure code.
+- Follow `docs/guidelines/` when tasks touch backend quality, observability, monitoring, auditability, or security.
 
 ## Implementation Expectations
 

@@ -136,13 +136,15 @@ The Loop Controller must update this section when project decisions, constraints
 ### Decisions
 
 - 2026-09-12: Agents live under the project root in `.agents/`.
-- 2026-09-12: Loop Controller only orchestrates and updates shared context; it must not edit production code.
+- 2026-09-12: Loop Controller is planning-only. It creates the implementation plan, delegates required work to Developer, QA, and Code Reviewer, and updates shared context; it must not edit production code, tests, build files, runtime configuration, or infrastructure configuration.
+- 2026-09-12: For implementation tasks, Developer must be explicitly delegated before code changes are made.
 - 2026-09-12: Developer may make implementation changes without additional approval inside the agreed MVP 1 scope.
 - 2026-09-12: QA may create tests when gaps are found, but should not change production code without surfacing the issue.
 - 2026-09-12: Code Reviewer is blocking for serious bugs and regressions.
 - 2026-09-12: Agent instructions and project docs should be written in English.
 - 2026-09-12: Phase 1 uses Spring Boot 3.3.5 because the MVP stack is locked to Spring Boot 3.x.
 - 2026-09-12: The Spring Initializr was used only to generate the project skeleton and Gradle Wrapper; generated Spring Boot 4 settings were adjusted back to Spring Boot 3.x.
+- 2026-09-12: Project guidelines for backend best practices, observability, monitoring, and security live under `docs/guidelines/` and should be consulted when relevant.
 
 ### Current Milestone
 
@@ -195,3 +197,8 @@ Review:
 - `docs/mvp-1-phases/05-api.md`
 - `docs/mvp-1-phases/06-integration-tests.md`
 - `docs/mvp-1-phases/07-documentation.md`
+- `docs/guidelines/README.md`
+- `docs/guidelines/backend-best-practices.md`
+- `docs/guidelines/observability-rules.md`
+- `docs/guidelines/monitoring-rules.md`
+- `docs/guidelines/security-rules.md`

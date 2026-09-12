@@ -90,6 +90,7 @@ The detailed MVP roadmap lives at:
 
 - `docs/mvp-1-roadmap.md`
 - `docs/mvp-1-phases/`
+- `docs/guidelines/`
 
 ## Agent Workflow
 
@@ -103,4 +104,6 @@ Project-specific agents live under `.agents/`:
 
 Agent files use YAML frontmatter for discoverability and plain Markdown for operating instructions.
 
-Use the Loop Controller as the entry point for non-trivial implementation tasks.
+Use the Loop Controller as the entry point for non-trivial implementation tasks. The Loop Controller is planning-only: it creates the implementation plan, delegates actual changes to Developer, delegates validation to QA, delegates review to Code Reviewer, and then updates shared context.
+
+Project guidelines for backend quality, observability, monitoring, and security live under `docs/guidelines/`.

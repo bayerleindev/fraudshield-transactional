@@ -9,6 +9,7 @@ reads:
   - .agents/shared-context.md
   - AGENTS.md
   - docs/mvp-1-roadmap.md
+  - docs/guidelines/
 reports_to:
   - loop-controller
 validates:

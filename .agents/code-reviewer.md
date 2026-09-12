@@ -9,6 +9,7 @@ reads:
   - .agents/shared-context.md
   - AGENTS.md
   - docs/mvp-1-roadmap.md
+  - docs/guidelines/
 reports_to:
   - loop-controller
 reviews:
@@ -53,6 +54,7 @@ For MVP 1, inspect:
 - Validation behavior.
 - Test coverage for meaningful scenarios.
 - Package boundaries and modular monolith direction.
+- Backend quality, observability, monitoring, and security guidelines when relevant.
 
 ## Blocking Findings
 
