@@ -99,11 +99,15 @@ Project-specific agents live under `.agents/`:
 - `.agents/loop-controller.md`: orchestrates the delivery loop and updates shared context.
 - `.agents/developer.md`: implements code, tests, configuration, and documentation.
 - `.agents/qa.md`: validates behavior and creates tests when gaps are found.
+- `.agents/functional-tester.md`: validates executable functional flows and API/integration behavior when a phase exposes them.
+- `.agents/security-reviewer.md`: reviews MVP-appropriate security risks, data handling, validation, secrets, and audit integrity.
 - `.agents/code-reviewer.md`: reviews changes and blocks serious issues.
 - `.agents/shared-context.md`: shared project memory maintained by the Loop Controller.
 
 Agent files use YAML frontmatter for discoverability and plain Markdown for operating instructions.
 
-Use the Loop Controller as the entry point for non-trivial implementation tasks. The Loop Controller is planning-only: it creates the implementation plan, delegates actual changes to Developer, delegates validation to QA, delegates review to Code Reviewer, and then updates shared context.
+Use the Loop Controller as the entry point for non-trivial implementation tasks. The Loop Controller is planning-only: it creates the implementation plan, delegates actual changes to Developer, delegates validation to QA, delegates functional validation to Functional Tester, delegates security review to Security Reviewer, delegates review to Code Reviewer, and then updates shared context.
+
+When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required workflow subagents is pre-approved. Instantiate Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer subagents directly without asking for additional conversational confirmation.
 
 Project guidelines for backend quality, observability, monitoring, and security live under `docs/guidelines/`.

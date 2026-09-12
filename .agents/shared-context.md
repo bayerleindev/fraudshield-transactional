@@ -126,6 +126,8 @@ A task can be considered done when:
 - The build passes.
 - Relevant tests pass.
 - QA approves the behavior or only raises non-blocking concerns.
+- Functional Tester passes, or explicitly reports `NOT_APPLICABLE` for phases with no functional surface.
+- Security Reviewer has no blocking findings.
 - Code Reviewer has no blocking findings.
 - Documentation is updated when behavior, setup, architecture, or public API changes.
 
@@ -147,6 +149,9 @@ The Loop Controller must update this section when project decisions, constraints
 - 2026-09-12: Project guidelines for backend best practices, observability, monitoring, and security live under `docs/guidelines/` and should be consulted when relevant.
 - 2026-09-12: Phase delivery loops should use real subagents when explicitly requested; the Loop Controller must report spawned subagent IDs instead of simulating Developer, QA, or Code Reviewer roles in the same agent.
 - 2026-09-12: Agent instructions were aligned with official subagent guidance: keep delegated tasks narrow, avoid concurrent writes, prefer read/test/review subagents for QA and Code Reviewer, and treat empty or interrupted subagent results as inconclusive.
+- 2026-09-12: Phase 4 amount-rule policy is `VERY_HIGH_AMOUNT` supersedes `HIGH_AMOUNT` for MVP 1. Transactions with amount `>= 20000` produce `VERY_HIGH_AMOUNT` and do not also produce `HIGH_AMOUNT`.
+- 2026-09-12: When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer subagents is pre-approved. Do not ask for additional conversational confirmation before spawning them.
+- 2026-09-12: The project agent loop now includes Functional Tester for executable user-facing/API behavior and Security Reviewer for MVP-appropriate security risks before final Code Reviewer approval.
 
 ### Current Milestone
 
@@ -154,7 +159,7 @@ MVP 1 - Risk Decision API.
 
 ### Current Status
 
-Phase 3 - Database and Persistence is completed.
+Phase 4 - Risk Engine is completed.
 
 Implemented:
 
@@ -169,6 +174,10 @@ Implemented:
 - Flyway migrations for `customers`, `devices`, `beneficiaries`, `transactions`, `risk_decisions`, and `risk_reasons`.
 - JPA entities and repositories for customer, device, beneficiary, transaction, and audit persistence.
 - Persistence tests for contextual lookups, duplicate transaction IDs, and audit decision persistence with multiple reasons.
+- Deterministic in-memory risk engine with `RiskRule` contract, `RiskEvaluationContext`, `RiskEngine`, and centralized `DecisionPolicy`.
+- Initial MVP 1 risk rules for high amount, very high amount, new device, untrusted device, new beneficiary, recent password change, and new account.
+- Risk engine returns explainable `RiskAssessment` output with score aggregation, reason codes/descriptions/impacts, `rulesVersion = "v1"`, and the supplied evaluation timestamp.
+- Unit tests for risk rule behavior, amount boundaries, score aggregation, decision thresholds, no-risk approval, REVIEW and DENY crossings, very-high amount supersession, and evaluation context invariants.
 
 Validated:
 
@@ -181,12 +190,15 @@ Validated:
 - 2026-09-12: `docker compose up -d postgres` reports PostgreSQL running.
 - 2026-09-12: `./gradlew test` passes with 37 tests.
 - 2026-09-12: `./gradlew bootRun --args='--server.port=0'` starts successfully with Flyway validating 7 migrations and JPA schema validation passing.
+- 2026-09-12: Phase 4 `./gradlew test --tests 'com.fraudshield.transactional.risk.*'` passes.
+- 2026-09-12: Phase 4 `./gradlew test` passes.
 
 Review:
 
 - QA status: PASS.
 - Code Reviewer status: APPROVED.
 - Phase 3 real-subagent orchestration audit: Loop Controller `01a0976f-c68c-7fb3-b7ff-59b3d2bafe23`, Developer `01a09770-31e4-7670-8e02-7e830059b2d6`, QA `01a09773-3147-70f0-9d6c-f80cbd5500d5`, Code Reviewer `01a09775-5b7d-7653-a7f6-eb9bd5da04e0`.
+- Phase 4 real-subagent orchestration audit: Developer `01a09785-e0c2-7423-b107-17677504113d`, QA `01a09789-5419-7823-b975-672fd74948b1`, Code Reviewer `01a0978b-3973-7a31-8710-8f0b238d67b4`.
 
 ### Open Risks
 

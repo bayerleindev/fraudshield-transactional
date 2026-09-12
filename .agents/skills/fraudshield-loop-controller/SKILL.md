@@ -1,0 +1,100 @@
+---
+name: fraudshield-loop-controller
+description: Start the FraudShield Transactional Loop Controller workflow for a requested MVP phase, using real subagents for implementation, QA, functional testing, security review, and code review.
+metadata:
+  short-description: Run FraudShield phase loop with real subagents
+  argument-hint: PHASE=<phase-doc-or-name> [FOCUS="scope"]
+---
+
+# FraudShield Loop Controller
+
+Use this skill when the user wants to start or run the FraudShield Transactional multi-agent delivery loop for a specific MVP phase.
+
+The expected user input names a phase document or phase name, and may include an additional focus scope:
+
+```text
+PHASE=<phase-doc-or-name> [FOCUS="scope"]
+```
+
+## Repository Context
+
+Operate in the current FraudShield Transactional repository. The project goal is a transactional anti-fraud backend that receives financial transaction events, evaluates deterministic risk rules, returns an explainable decision, and persists the audit trail.
+
+Keep MVP 1 scope tight unless the user explicitly expands it: REST transaction evaluation, deterministic in-memory risk rules, PostgreSQL persistence, Flyway migrations, unit tests, integration tests, Docker Compose, and README instructions. Do not introduce Kafka, Redis, ML, dashboards, graph detection, authentication, Kubernetes, or full observability for MVP 1 unless explicitly requested.
+
+## Required Workflow
+
+Start by instantiating a real Loop Controller agent. The Loop Controller is planning and orchestration only; it must not implement code directly.
+
+The Loop Controller must follow `.agents/loop-controller.md` and read these files before planning:
+
+- `.agents/shared-context.md`
+- `AGENTS.md`
+- `docs/mvp-1-roadmap.md`
+- The requested phase document
+- Relevant files under `docs/guidelines/`
+
+If the requested phase is a name rather than a path, resolve it against `docs/mvp-1-phases/` and the roadmap.
+
+## Subagents
+
+The Loop Controller must create real subagents, not simulated roles. Report each subagent id, nickname if available, role, and final status.
+
+Create and sequence these subagents:
+
+1. Developer subagent
+   - Follow `.agents/developer.md`.
+   - Implement or correct only the agreed phase scope.
+   - Edit files directly only when the implementation handoff authorizes it.
+   - Report changed files and validation performed.
+
+2. QA subagent
+   - Follow `.agents/qa.md`.
+   - Validate behavior and tests after Developer finishes.
+   - Prefer read/test work.
+   - Do not modify production code.
+   - Report status as `PASS` or `FAIL`, including commands run and gaps found.
+
+3. Functional Tester subagent
+   - Follow `.agents/functional-tester.md`.
+   - Validate executable functional flows after QA finishes.
+   - Prefer read/test/run work.
+   - Do not modify production code.
+   - Report status as `PASS`, `FAIL`, or `NOT_APPLICABLE`, including commands run, scenarios verified, and coverage gaps found.
+
+4. Security Reviewer subagent
+   - Follow `.agents/security-reviewer.md`.
+   - Review MVP-appropriate security risks after functional validation.
+   - Stay read-only.
+   - Lead with blocking security findings, then non-blocking findings and security test gaps.
+
+5. Code Reviewer subagent
+   - Follow `.agents/code-reviewer.md`.
+   - Perform final review after QA, Functional Tester, and Security Reviewer complete.
+   - Prefer read-only review.
+   - Lead with blocking findings, then non-blocking findings and test gaps.
+
+## Loop Rules
+
+- Keep tasks narrow and non-overlapping.
+- Avoid concurrent writes to the same files.
+- Run Developer before QA, QA before Functional Tester, Functional Tester before Security Reviewer, and Security Reviewer before Code Reviewer unless the Loop Controller explicitly explains a safe parallel read-only split.
+- If QA, Functional Tester, Security Reviewer, or Code Reviewer finds a blocker, send a correction handoff to the Developer subagent, then repeat validation and review until no blockers remain or the workflow is genuinely blocked.
+- The Loop Controller may update only `.agents/shared-context.md`, and only at the end of the workflow.
+- Respect existing user changes in the working tree. Do not revert unrelated changes.
+
+## Final Report
+
+Return a concise final report with:
+
+- Plan
+- Subagent ids, nicknames if available, roles, and final statuses
+- Files changed
+- Validation commands
+- Functional validation status
+- Security review status
+- Review status
+- Unresolved risks
+- Whether the workflow followed official subagent best practices
+
+Include the optional focus scope from the user in the plan and handoffs when supplied.
