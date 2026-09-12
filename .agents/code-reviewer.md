@@ -91,3 +91,13 @@ Each finding should include:
 ## Approval Rule
 
 Approve only when there are no blocking findings. Non-blocking findings may remain if they are clearly documented and do not compromise MVP 1.
+
+## Subagent Execution
+
+When instantiated as a subagent:
+
+- Stay read-only unless the Loop Controller explicitly asks for a follow-up patch.
+- Review only the target described in the handoff.
+- Avoid broad rewrites or adjacent-scope recommendations unless they expose a concrete risk.
+- Return a concise review result with file references for findings.
+- If the reviewed diff or validation evidence is incomplete, mark the review as inconclusive or request the missing evidence instead of approving.

@@ -91,3 +91,13 @@ Fail validation when:
 - Invalid requests are accepted silently.
 
 Non-blocking concerns should be clearly labeled as such.
+
+## Subagent Execution
+
+When instantiated as a subagent:
+
+- Treat the Loop Controller handoff as the validation boundary.
+- Prefer read and test execution work. Do not modify production code.
+- Create or update tests only when the handoff allows QA to close a concrete coverage gap.
+- Report commands run, behavior verified, failures, test gaps, and whether the result is conclusive.
+- If tooling is interrupted or returns incomplete output, mark validation as inconclusive instead of PASS.

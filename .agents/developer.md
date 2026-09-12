@@ -88,3 +88,12 @@ When QA finds a bug or test gap, treat it as implementation feedback. Fix blocki
 ## Collaboration With Code Reviewer
 
 Blocking review findings must be addressed before the task is considered complete. For non-blocking suggestions, apply them when they improve clarity without expanding scope.
+
+## Subagent Execution
+
+When instantiated as a subagent:
+
+- Work only on the explicit implementation handoff from the Loop Controller.
+- Avoid editing files outside the assigned scope unless the change is required to complete the task safely.
+- Do not start parallel write work with other subagents.
+- Report changed files, commands run, validation status, and known limitations back to the Loop Controller.

@@ -145,6 +145,8 @@ The Loop Controller must update this section when project decisions, constraints
 - 2026-09-12: Phase 1 uses Spring Boot 3.3.5 because the MVP stack is locked to Spring Boot 3.x.
 - 2026-09-12: The Spring Initializr was used only to generate the project skeleton and Gradle Wrapper; generated Spring Boot 4 settings were adjusted back to Spring Boot 3.x.
 - 2026-09-12: Project guidelines for backend best practices, observability, monitoring, and security live under `docs/guidelines/` and should be consulted when relevant.
+- 2026-09-12: Phase delivery loops should use real subagents when explicitly requested; the Loop Controller must report spawned subagent IDs instead of simulating Developer, QA, or Code Reviewer roles in the same agent.
+- 2026-09-12: Agent instructions were aligned with official subagent guidance: keep delegated tasks narrow, avoid concurrent writes, prefer read/test/review subagents for QA and Code Reviewer, and treat empty or interrupted subagent results as inconclusive.
 
 ### Current Milestone
 
@@ -152,7 +154,7 @@ MVP 1 - Risk Decision API.
 
 ### Current Status
 
-Phase 1 - Bootstrap is completed.
+Phase 3 - Database and Persistence is completed.
 
 Implemented:
 
@@ -164,6 +166,9 @@ Implemented:
 - Flyway migration directory.
 - Modular package skeleton.
 - Git repository initialized.
+- Flyway migrations for `customers`, `devices`, `beneficiaries`, `transactions`, `risk_decisions`, and `risk_reasons`.
+- JPA entities and repositories for customer, device, beneficiary, transaction, and audit persistence.
+- Persistence tests for contextual lookups, duplicate transaction IDs, and audit decision persistence with multiple reasons.
 
 Validated:
 
@@ -173,18 +178,22 @@ Validated:
 - `docker compose ps` reports PostgreSQL healthy.
 - `docker compose exec postgres pg_isready -U fraudshield -d fraudshield` reports accepting connections.
 - `./gradlew bootRun --args='--server.port=0'` starts successfully, connects to PostgreSQL, runs Flyway, initializes JPA, and starts Tomcat.
+- 2026-09-12: `docker compose up -d postgres` reports PostgreSQL running.
+- 2026-09-12: `./gradlew test` passes with 37 tests.
+- 2026-09-12: `./gradlew bootRun --args='--server.port=0'` starts successfully with Flyway validating 7 migrations and JPA schema validation passing.
 
 Review:
 
 - QA status: PASS.
 - Code Reviewer status: APPROVED.
+- Phase 3 real-subagent orchestration audit: Loop Controller `01a0976f-c68c-7fb3-b7ff-59b3d2bafe23`, Developer `01a09770-31e4-7670-8e02-7e830059b2d6`, QA `01a09773-3147-70f0-9d6c-f80cbd5500d5`, Code Reviewer `01a09775-5b7d-7653-a7f6-eb9bd5da04e0`.
 
 ### Open Risks
 
 - Port `8080` was already in use during local validation. Use `./gradlew bootRun --args='--server.port=0'` or free port `8080` when needed.
-- Flyway is enabled, but no migrations exist yet. This is expected until Phase 3.
-- Database schema and API contracts are documented but not implemented.
-- Test strategy is defined at a high level but not wired into the build yet.
+- Database schema is implemented for MVP 1 persistence. The REST API contract is still pending later phases.
+- Persistence tests are wired into the build and require the Docker Compose PostgreSQL service for local validation.
+- Local Testcontainers execution was blocked by the machine-level `~/.testcontainers.properties` forcing a Docker client strategy that does not work with the active Docker Desktop context. Phase 3 persistence validation used the Docker Compose PostgreSQL service instead.
 
 ### Useful References
 

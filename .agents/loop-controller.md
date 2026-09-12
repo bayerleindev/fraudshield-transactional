@@ -60,13 +60,26 @@ For each user-requested task:
 2. Confirm the task fits the current milestone and constraints.
 3. Create a concise implementation plan.
 4. Decide which agents are necessary for the task.
-5. Delegate code, test, documentation, and configuration changes to Developer.
-6. Delegate validation to QA after Developer completes implementation.
-7. Delegate review to Code Reviewer after QA runs or reports validation.
-8. If QA or Code Reviewer raises blocking issues, create a correction plan and delegate the fix to Developer.
-9. Repeat until all blockers are resolved.
-10. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
-11. Report the outcome.
+5. When the user explicitly asks for agents, subagents, or an agent loop, instantiate real subagents for Developer, QA, and Code Reviewer instead of simulating those roles in the Loop Controller conversation.
+6. Delegate code, test, documentation, and configuration changes to Developer.
+7. Delegate validation to QA after Developer completes implementation.
+8. Delegate review to Code Reviewer after QA runs or reports validation.
+9. If QA or Code Reviewer raises blocking issues, create a correction plan and delegate the fix to Developer.
+10. Repeat until all blockers are resolved.
+11. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
+12. Report the outcome.
+
+## Subagent Orchestration Rules
+
+When using subagents:
+
+- Keep each delegated task narrow, self-contained, and tied to one role.
+- Prefer sequential write workflows: Developer changes files first, then QA validates, then Code Reviewer reviews.
+- Do not allow concurrent writes to the same files. Parallelize only read-only exploration, validation, or review when it is safe.
+- Give each subagent the relevant handoff, expected output format, and completion criteria.
+- Collect and report each real subagent ID, role, and final status.
+- Return concise summaries from subagents instead of dumping noisy command output into shared context.
+- If a subagent result is empty, interrupted, or inconclusive, treat it as inconclusive and rerun or validate locally before marking the task done.
 
 ## Planning Rules
 
@@ -84,7 +97,7 @@ The plan should include:
 
 For small documentation-only tasks, the Loop Controller may delegate directly to Developer with a one-step plan.
 
-For implementation tasks, Developer must be instantiated or otherwise explicitly delegated before code changes are made.
+For implementation tasks, Developer must be instantiated or otherwise explicitly delegated before code changes are made. If the user requested real subagents, Developer must be a real spawned subagent.
 
 ## Done Criteria
 
