@@ -52,6 +52,12 @@ public class TransactionEntity {
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
+	@Column(name = "request_fingerprint", nullable = false, length = 64)
+	private String requestFingerprint;
+
+	@Column(name = "first_evaluated_at", nullable = false)
+	private Instant firstEvaluatedAt;
+
 	protected TransactionEntity() {
 	}
 
@@ -65,7 +71,9 @@ public class TransactionEntity {
 			String deviceId,
 			String ipAddress,
 			Instant occurredAt,
-			Instant createdAt
+			Instant createdAt,
+			String requestFingerprint,
+			Instant firstEvaluatedAt
 	) {
 		this.transactionId = requireNotBlank(transactionId, "transactionId");
 		this.customerId = requireNotBlank(customerId, "customerId");
@@ -77,6 +85,8 @@ public class TransactionEntity {
 		this.ipAddress = requireNotBlank(ipAddress, "ipAddress");
 		this.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt must not be null");
 		this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
+		this.requestFingerprint = requireNotBlank(requestFingerprint, "requestFingerprint");
+		this.firstEvaluatedAt = Objects.requireNonNull(firstEvaluatedAt, "firstEvaluatedAt must not be null");
 	}
 
 	public Long getId() {
@@ -121,6 +131,14 @@ public class TransactionEntity {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public String getRequestFingerprint() {
+		return requestFingerprint;
+	}
+
+	public Instant getFirstEvaluatedAt() {
+		return firstEvaluatedAt;
 	}
 
 	private static String requireNotBlank(String value, String fieldName) {

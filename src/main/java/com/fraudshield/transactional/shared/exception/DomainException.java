@@ -22,6 +22,14 @@ public class DomainException extends RuntimeException {
 		return new DomainException("DUPLICATE_TRANSACTION", "Transaction has already been evaluated.", HttpStatus.CONFLICT);
 	}
 
+	public static DomainException transactionConflict() {
+		return new DomainException(
+				"TRANSACTION_CONFLICT",
+				"Transaction has already been evaluated with different data.",
+				HttpStatus.CONFLICT
+		);
+	}
+
 	public String getCode() {
 		return code;
 	}

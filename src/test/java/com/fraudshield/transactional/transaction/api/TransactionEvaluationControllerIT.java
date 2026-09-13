@@ -209,6 +209,8 @@ class TransactionEvaluationControllerIT extends PostgresIntegrationTest {
 					assertThat(transaction.getAmount()).isEqualByComparingTo("5000.00");
 					assertThat(transaction.getCurrency()).isEqualTo("BRL");
 					assertThat(transaction.getPaymentMethod()).isEqualTo(PaymentMethod.PIX);
+					assertThat(transaction.getRequestFingerprint()).hasSize(64);
+					assertThat(transaction.getFirstEvaluatedAt()).isEqualTo(Instant.parse("2026-09-12T14:30:01Z"));
 				});
 
 		assertThat(riskDecisionRepository.findByTransactionId("tx-it-persistence"))
@@ -228,6 +230,65 @@ class TransactionEvaluationControllerIT extends PostgresIntegrationTest {
 							.extracting(RiskReasonEntity::getScoreImpact)
 							.containsExactly(30, 20, 25);
 				});
+	}
+
+	@Test
+	void equivalentRetryReturnsStoredDecisionWithoutDuplicateAudit() throws Exception {
+		customerRepository.save(new CustomerEntity("cus-it-idempotent", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
+
+		var request = validRequestBuilder()
+				.transactionId("tx-it-idempotent")
+				.customerId("cus-it-idempotent")
+				.amount(new BigDecimal("5000.00"))
+				.build();
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.decision").value("REVIEW"))
+				.andExpect(jsonPath("$.score").value(75))
+				.andExpect(jsonPath("$.evaluatedAt").value("2026-09-12T14:30:01Z"));
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.decision").value("REVIEW"))
+				.andExpect(jsonPath("$.score").value(75))
+				.andExpect(jsonPath("$.evaluatedAt").value("2026-09-12T14:30:01Z"));
+
+		assertThat(transactionRepository.findAll()).hasSize(1);
+		assertThat(riskDecisionRepository.findByTransactionId("tx-it-idempotent")).hasSize(1);
+	}
+
+	@Test
+	void conflictingRetryReturnsTransactionConflict() throws Exception {
+		customerRepository.save(new CustomerEntity("cus-it-conflict", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-it-conflict")
+								.customerId("cus-it-conflict")
+								.amount(new BigDecimal("5000.00"))
+								.build())))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-it-conflict")
+								.customerId("cus-it-conflict")
+								.amount(new BigDecimal("9000.00"))
+								.build())))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("TRANSACTION_CONFLICT"))
+				.andExpect(jsonPath("$.message").value("Transaction has already been evaluated with different data."))
+				.andExpect(jsonPath("$.status").value(409));
+
+		assertThat(transactionRepository.findAll()).hasSize(1);
+		assertThat(riskDecisionRepository.findByTransactionId("tx-it-conflict")).hasSize(1);
 	}
 
 	private void saveStableCustomerContext(String customerId, String deviceId, String beneficiaryId) {

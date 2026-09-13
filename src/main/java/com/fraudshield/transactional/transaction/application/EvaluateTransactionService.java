@@ -10,7 +10,9 @@ import com.fraudshield.transactional.device.infra.DeviceRepository;
 import com.fraudshield.transactional.risk.application.RiskEngine;
 import com.fraudshield.transactional.risk.domain.RiskAssessment;
 import com.fraudshield.transactional.risk.domain.RiskEvaluationContext;
+import com.fraudshield.transactional.risk.domain.RiskReason;
 import com.fraudshield.transactional.shared.exception.DomainException;
+import com.fraudshield.transactional.shared.idempotency.RequestFingerprintService;
 import com.fraudshield.transactional.transaction.domain.TransactionEvaluation;
 import com.fraudshield.transactional.transaction.infra.TransactionEntity;
 import com.fraudshield.transactional.transaction.infra.TransactionRepository;
@@ -34,6 +36,7 @@ public class EvaluateTransactionService {
 	private final TransactionRepository transactionRepository;
 	private final RiskDecisionRepository riskDecisionRepository;
 	private final RiskEngine riskEngine;
+	private final RequestFingerprintService requestFingerprintService;
 	private final Clock clock;
 
 	public EvaluateTransactionService(
@@ -43,6 +46,7 @@ public class EvaluateTransactionService {
 			TransactionRepository transactionRepository,
 			RiskDecisionRepository riskDecisionRepository,
 			RiskEngine riskEngine,
+			RequestFingerprintService requestFingerprintService,
 			Clock clock
 	) {
 		this.customerRepository = Objects.requireNonNull(customerRepository, "customerRepository must not be null");
@@ -51,6 +55,10 @@ public class EvaluateTransactionService {
 		this.transactionRepository = Objects.requireNonNull(transactionRepository, "transactionRepository must not be null");
 		this.riskDecisionRepository = Objects.requireNonNull(riskDecisionRepository, "riskDecisionRepository must not be null");
 		this.riskEngine = Objects.requireNonNull(riskEngine, "riskEngine must not be null");
+		this.requestFingerprintService = Objects.requireNonNull(
+				requestFingerprintService,
+				"requestFingerprintService must not be null"
+		);
 		this.clock = Objects.requireNonNull(clock, "clock must not be null");
 	}
 
@@ -58,9 +66,14 @@ public class EvaluateTransactionService {
 	public TransactionEvaluationResult evaluate(TransactionEvaluation transaction) {
 		Objects.requireNonNull(transaction, "transaction must not be null");
 		var startedAtNanos = System.nanoTime();
+		var requestFingerprint = requestFingerprintService.fingerprint(transaction);
 
-		if (transactionRepository.existsByTransactionId(transaction.transactionId())) {
-			throw DomainException.duplicateTransaction();
+		var existingTransaction = transactionRepository.findByTransactionId(transaction.transactionId());
+		if (existingTransaction.isPresent()) {
+			if (existingTransaction.get().getRequestFingerprint().equals(requestFingerprint.value())) {
+				return storedResult(transaction.transactionId());
+			}
+			throw DomainException.transactionConflict();
 		}
 
 		var customer = customerRepository.findByCustomerId(transaction.customerId())
@@ -82,13 +95,34 @@ public class EvaluateTransactionService {
 				evaluatedAt
 		));
 
-		persistAuditTrail(transaction, assessment, evaluatedAt);
+		persistAuditTrail(transaction, assessment, evaluatedAt, requestFingerprint.value());
 		logSuccessfulEvaluation(transaction, assessment, startedAtNanos);
 
 		return new TransactionEvaluationResult(transaction.transactionId(), assessment);
 	}
 
-	private void persistAuditTrail(TransactionEvaluation transaction, RiskAssessment assessment, Instant evaluatedAt) {
+	private TransactionEvaluationResult storedResult(String transactionId) {
+		var decision = riskDecisionRepository.findFirstByTransactionIdOrderByEvaluatedAtAsc(transactionId)
+				.orElseThrow(() -> new IllegalStateException("Stored transaction has no risk decision"));
+		var reasons = decision.getReasons().stream()
+				.map(reason -> new RiskReason(reason.getCode(), reason.getDescription(), reason.getScoreImpact()))
+				.toList();
+		var assessment = new RiskAssessment(
+				decision.getDecision(),
+				decision.getScore(),
+				reasons,
+				decision.getRulesVersion(),
+				decision.getEvaluatedAt()
+		);
+		return new TransactionEvaluationResult(transactionId, assessment);
+	}
+
+	private void persistAuditTrail(
+			TransactionEvaluation transaction,
+			RiskAssessment assessment,
+			Instant evaluatedAt,
+			String requestFingerprint
+	) {
 		transactionRepository.save(new TransactionEntity(
 				transaction.transactionId(),
 				transaction.customerId(),
@@ -99,6 +133,8 @@ public class EvaluateTransactionService {
 				transaction.deviceId(),
 				transaction.ipAddress(),
 				transaction.occurredAt(),
+				evaluatedAt,
+				requestFingerprint,
 				evaluatedAt
 		));
 

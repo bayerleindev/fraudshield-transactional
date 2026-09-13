@@ -174,6 +174,8 @@ class PersistenceRepositoryTest extends PostgresIntegrationTest {
 				deviceId,
 				"177.10.20.30",
 				occurredAt,
+				occurredAt.plusSeconds(1),
+				"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
 				occurredAt.plusSeconds(1)
 		);
 	}

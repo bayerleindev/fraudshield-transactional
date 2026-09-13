@@ -240,7 +240,7 @@ class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
 	}
 
 	@Test
-	void returnsControlledConflictForDuplicateTransactionId() throws Exception {
+	void equivalentRetryReturnsStoredDecisionWithoutDuplicateAudit() throws Exception {
 		customerRepository.save(new CustomerEntity("cus-api-duplicate", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
 
 		var request = validRequestBuilder()
@@ -256,11 +256,44 @@ class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
 		mockMvc.perform(post("/transactions/evaluate")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.transactionId").value("tx-api-duplicate"))
+				.andExpect(jsonPath("$.decision").value("REVIEW"))
+				.andExpect(jsonPath("$.score").value(75))
+				.andExpect(jsonPath("$.evaluatedAt").value("2026-09-12T14:30:01Z"));
+
+		assertThat(transactionRepository.findAll()).hasSize(1);
+		assertThat(riskDecisionRepository.findByTransactionId("tx-api-duplicate")).hasSize(1);
+	}
+
+	@Test
+	void conflictingRetryReturnsTransactionConflict() throws Exception {
+		customerRepository.save(new CustomerEntity("cus-api-conflict", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
+
+		var request = validRequestBuilder()
+				.transactionId("tx-api-conflict")
+				.customerId("cus-api-conflict")
+				.build();
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-api-conflict")
+								.customerId("cus-api-conflict")
+								.amount(new BigDecimal("9000.00"))
+								.build())))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.code").value("DUPLICATE_TRANSACTION"))
+				.andExpect(jsonPath("$.code").value("TRANSACTION_CONFLICT"))
+				.andExpect(jsonPath("$.message").value("Transaction has already been evaluated with different data."))
 				.andExpect(jsonPath("$.status").value(409));
 
-		assertThat(riskDecisionRepository.findByTransactionId("tx-api-duplicate")).hasSize(1);
+		assertThat(transactionRepository.findAll()).hasSize(1);
+		assertThat(riskDecisionRepository.findByTransactionId("tx-api-conflict")).hasSize(1);
 	}
 
 	private static RequestBuilder validRequestBuilder() {
