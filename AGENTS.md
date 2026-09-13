@@ -102,12 +102,13 @@ Project-specific agents live under `.agents/`:
 - `.agents/functional-tester.md`: validates executable functional flows and API/integration behavior when a phase exposes them.
 - `.agents/security-reviewer.md`: reviews MVP-appropriate security risks, data handling, validation, secrets, and audit integrity.
 - `.agents/code-reviewer.md`: reviews changes and blocks serious issues.
+- `.agents/guideline-compliance-reviewer.md`: performs the final strict compliance audit against `docs/guidelines/`, roadmap scope, phase docs, and prior subagent reports.
 - `.agents/shared-context.md`: shared project memory maintained by the Loop Controller.
 
 Agent files use YAML frontmatter for discoverability and plain Markdown for operating instructions.
 
-Use the Loop Controller as the entry point for non-trivial implementation tasks. The Loop Controller is planning-only: it creates the implementation plan, delegates actual changes to Developer, then runs QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel after Developer finishes. The Loop Controller waits for all validation and review reports before deciding whether to send consolidated corrections back to Developer, and updates shared context at the end.
+Use the Loop Controller as the entry point for non-trivial implementation tasks. The Loop Controller is planning-only: it creates the implementation plan, delegates actual changes to Developer, then runs QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel after Developer finishes. The Loop Controller waits for all validation and review reports before deciding whether to send consolidated corrections back to Developer. Once that wave has no blockers, it runs Guideline Compliance Reviewer as the final strict `docs/guidelines/` gate, then updates shared context at the end.
 
-When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required workflow subagents is pre-approved. Instantiate Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer subagents directly without asking for additional conversational confirmation.
+When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required workflow subagents is pre-approved. Instantiate Developer, QA, Functional Tester, Security Reviewer, Code Reviewer, and Guideline Compliance Reviewer subagents directly without asking for additional conversational confirmation.
 
 Project guidelines for backend quality, observability, monitoring, and security live under `docs/guidelines/`.

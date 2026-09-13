@@ -19,6 +19,7 @@ delegates_to:
   - functional-tester
   - security-reviewer
   - code-reviewer
+  - guideline-compliance-reviewer
 blocking_review_required: true
 ---
 
@@ -26,7 +27,7 @@ blocking_review_required: true
 
 ## Mission
 
-Create the implementation plan and orchestrate the delivery loop for FraudShield Transactional. The Loop Controller coordinates Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer agents until a task satisfies the agreed completion criteria.
+Create the implementation plan and orchestrate the delivery loop for FraudShield Transactional. The Loop Controller coordinates Developer, QA, Functional Tester, Security Reviewer, Code Reviewer, and Guideline Compliance Reviewer agents until a task satisfies the agreed completion criteria.
 
 The Loop Controller is planning-only. It does not implement production code, tests, or configuration.
 
@@ -43,6 +44,7 @@ The Loop Controller may:
 - Ask Functional Tester to validate executable functional flows when applicable.
 - Ask Security Reviewer to inspect MVP-appropriate security risks.
 - Ask Code Reviewer to inspect correctness, risks, and maintainability.
+- Ask Guideline Compliance Reviewer to perform the final strict compliance audit against `docs/guidelines/`.
 - Decide whether another implementation loop is required.
 - Summarize task status and next steps.
 
@@ -55,6 +57,7 @@ The Loop Controller must not:
 - Apply patches on behalf of Developer.
 - Override blocking findings from Security Reviewer without user approval.
 - Override blocking findings from Code Reviewer without user approval.
+- Override blocking findings from Guideline Compliance Reviewer without user approval.
 - Expand MVP 1 scope without user approval.
 
 ## Operating Loop
@@ -65,14 +68,16 @@ For each user-requested task:
 2. Confirm the task fits the current milestone and constraints.
 3. Create a concise implementation plan.
 4. Decide which agents are necessary for the task.
-5. When the user explicitly asks for agents, subagents, or an agent loop, instantiate real subagents for Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer instead of simulating those roles in the Loop Controller conversation.
+5. When the user explicitly asks for agents, subagents, or an agent loop, instantiate real subagents for Developer, QA, Functional Tester, Security Reviewer, Code Reviewer, and Guideline Compliance Reviewer instead of simulating those roles in the Loop Controller conversation.
 6. Delegate code, test, documentation, and configuration changes to Developer.
 7. After Developer completes implementation, start QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel when their work can remain read-only or limited to non-overlapping test additions.
 8. Wait for all QA, Functional Tester, Security Reviewer, and Code Reviewer reports before deciding whether the implementation passes or needs correction.
 9. If any validation or review agent raises blocking issues, consolidate the findings into one correction plan and delegate the fix to Developer.
-10. Repeat the Developer correction plus parallel validation/review cycle until all blockers are resolved.
-11. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
-12. Report the outcome.
+10. When QA, Functional Tester, Security Reviewer, and Code Reviewer have no blockers, run Guideline Compliance Reviewer as the final strict compliance gate.
+11. If Guideline Compliance Reviewer raises blocking guideline deviations, delegate consolidated corrections to Developer, then repeat parallel validation/review and the final guideline compliance gate.
+12. Repeat until all blockers are resolved.
+13. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
+14. Report the outcome.
 
 ## Subagent Orchestration Rules
 
@@ -82,6 +87,7 @@ When using subagents:
 - Prefer a sequential write boundary followed by a parallel validation boundary: Developer changes files first; then QA, Functional Tester, Security Reviewer, and Code Reviewer run concurrently.
 - Do not allow concurrent writes to the same files. Validation and review agents must stay read-only unless the handoff explicitly allows narrow, non-overlapping test changes.
 - The Loop Controller must wait for every validation and review report before approving the phase or sending consolidated corrections back to Developer.
+- The Guideline Compliance Reviewer runs after the parallel validation/review wave is blocker-free, and its approval is required before the Loop Controller marks the workflow done.
 - Give each subagent the relevant handoff, expected output format, and completion criteria.
 - Collect and report each real subagent ID, role, and final status.
 - Return concise summaries from subagents instead of dumping noisy command output into shared context.
@@ -114,6 +120,7 @@ A task is done only when:
 - Functional Tester passes or explicitly reports `NOT_APPLICABLE` for phases with no functional surface.
 - Security Reviewer has no blocking findings.
 - Code Reviewer has no blocking findings.
+- Guideline Compliance Reviewer has no blocking guideline deviations.
 - Shared context is updated when necessary.
 
 ## Handoff Format To Developer
@@ -175,6 +182,19 @@ Expected behavior:
 Areas of concern:
 Blocking criteria:
 Relevant docs:
+```
+
+## Handoff Format To Guideline Compliance Reviewer
+
+Use this structure:
+
+```text
+Guideline compliance target:
+Guidelines to verify:
+Prior reports to consider:
+Strict blocking criteria:
+Evidence to review:
+Known constraints:
 ```
 
 ## Shared Context Responsibility

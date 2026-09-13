@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -79,6 +80,7 @@ class TransactionEvaluationControllerTest {
 		customerRepository.save(new CustomerEntity("cus-api-review", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
 
 		mockMvc.perform(post("/transactions/evaluate")
+						.header("X-Correlation-Id", "corr-api-review")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(validRequestBuilder()
 								.transactionId("tx-api-review")
@@ -86,6 +88,7 @@ class TransactionEvaluationControllerTest {
 								.amount(new BigDecimal("8500.00"))
 								.build())))
 				.andExpect(status().isOk())
+				.andExpect(header().string("X-Correlation-Id", "corr-api-review"))
 				.andExpect(jsonPath("$.transactionId").value("tx-api-review"))
 				.andExpect(jsonPath("$.decision").value("REVIEW"))
 				.andExpect(jsonPath("$.score").value(75))
@@ -187,6 +190,7 @@ class TransactionEvaluationControllerTest {
 								.amount(BigDecimal.ZERO)
 								.build())))
 				.andExpect(status().isBadRequest())
+				.andExpect(header().exists("X-Correlation-Id"))
 				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
 				.andExpect(jsonPath("$.status").value(400))
 				.andExpect(jsonPath("$.errors[*].field").value(contains("amount", "transactionId")));
@@ -218,12 +222,14 @@ class TransactionEvaluationControllerTest {
 	@Test
 	void returnsDomainErrorWhenCustomerDoesNotExist() throws Exception {
 		mockMvc.perform(post("/transactions/evaluate")
+						.header("X-Correlation-Id", "corr-missing-customer")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(validRequestBuilder()
 								.transactionId("tx-missing-customer")
 								.customerId("cus-missing")
 								.build())))
 				.andExpect(status().isBadRequest())
+				.andExpect(header().string("X-Correlation-Id", "corr-missing-customer"))
 				.andExpect(jsonPath("$.code").value("CUSTOMER_NOT_FOUND"))
 				.andExpect(jsonPath("$.message").value("Customer was not found."))
 				.andExpect(jsonPath("$.status").value(400));

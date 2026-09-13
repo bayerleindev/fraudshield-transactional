@@ -14,15 +14,20 @@ import com.fraudshield.transactional.shared.exception.DomainException;
 import com.fraudshield.transactional.transaction.domain.TransactionEvaluation;
 import com.fraudshield.transactional.transaction.infra.TransactionEntity;
 import com.fraudshield.transactional.transaction.infra.TransactionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class EvaluateTransactionService {
+	private static final Logger LOGGER = LoggerFactory.getLogger(EvaluateTransactionService.class);
+
 	private final CustomerRepository customerRepository;
 	private final DeviceRepository deviceRepository;
 	private final BeneficiaryRepository beneficiaryRepository;
@@ -52,6 +57,7 @@ public class EvaluateTransactionService {
 	@Transactional
 	public TransactionEvaluationResult evaluate(TransactionEvaluation transaction) {
 		Objects.requireNonNull(transaction, "transaction must not be null");
+		var startedAtNanos = System.nanoTime();
 
 		if (transactionRepository.existsByTransactionId(transaction.transactionId())) {
 			throw DomainException.duplicateTransaction();
@@ -77,6 +83,7 @@ public class EvaluateTransactionService {
 		));
 
 		persistAuditTrail(transaction, assessment, evaluatedAt);
+		logSuccessfulEvaluation(transaction, assessment, startedAtNanos);
 
 		return new TransactionEvaluationResult(transaction.transactionId(), assessment);
 	}
@@ -108,5 +115,27 @@ public class EvaluateTransactionService {
 				reason.scoreImpact()
 		)));
 		riskDecisionRepository.save(decision);
+	}
+
+	private static void logSuccessfulEvaluation(
+			TransactionEvaluation transaction,
+			RiskAssessment assessment,
+			long startedAtNanos
+	) {
+		var durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
+		var reasonCodes = assessment.reasons().stream()
+				.map(reason -> reason.code().name())
+				.toList();
+
+		LOGGER.info(
+				"transaction_evaluation_completed transactionId={} customerId={} decision={} score={} rulesVersion={} reasonCodes={} durationMs={}",
+				transaction.transactionId(),
+				transaction.customerId(),
+				assessment.decision(),
+				assessment.score(),
+				assessment.rulesVersion(),
+				reasonCodes,
+				durationMs
+		);
 	}
 }

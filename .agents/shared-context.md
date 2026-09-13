@@ -150,11 +150,14 @@ The Loop Controller must update this section when project decisions, constraints
 - 2026-09-12: Phase delivery loops should use real subagents when explicitly requested; the Loop Controller must report spawned subagent IDs instead of simulating Developer, QA, or Code Reviewer roles in the same agent.
 - 2026-09-12: Agent instructions were aligned with official subagent guidance: keep delegated tasks narrow, avoid concurrent writes, prefer read/test/review subagents for QA and Code Reviewer, and treat empty or interrupted subagent results as inconclusive.
 - 2026-09-12: Phase 4 amount-rule policy is `VERY_HIGH_AMOUNT` supersedes `HIGH_AMOUNT` for MVP 1. Transactions with amount `>= 20000` produce `VERY_HIGH_AMOUNT` and do not also produce `HIGH_AMOUNT`.
-- 2026-09-12: When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required Developer, QA, Functional Tester, Security Reviewer, and Code Reviewer subagents is pre-approved. Do not ask for additional conversational confirmation before spawning them.
+- 2026-09-12: When the user explicitly invokes the Loop Controller or requests the project agent workflow, creation of the required Developer, QA, Functional Tester, Security Reviewer, Code Reviewer, and Guideline Compliance Reviewer subagents is pre-approved. Do not ask for additional conversational confirmation before spawning them.
 - 2026-09-12: The project agent loop now includes Functional Tester for executable user-facing/API behavior and Security Reviewer for MVP-appropriate security risks.
 - 2026-09-12: After Developer completes implementation, QA, Functional Tester, Security Reviewer, and Code Reviewer run in parallel when their scopes are read-only or otherwise non-overlapping. The Loop Controller waits for all reports before deciding whether to send consolidated corrections back to Developer.
 - 2026-09-12: For API phases, Functional Tester must start the dockerized application through Docker or Docker Compose and validate endpoints with real `curl` requests. MockMvc-only validation is insufficient when a dockerized app runtime exists.
 - 2026-09-12: Phase 5 missing customer behavior is `400 CUSTOMER_NOT_FOUND`; missing customers are not treated as `NEW_ACCOUNT` risk context in MVP 1.
+- 2026-09-13: API requests use `X-Correlation-Id`; the application preserves incoming values, generates one when absent, returns it in the response header, and stores it in MDC during request handling.
+- 2026-09-13: MVP observability uses a single successful evaluation summary log at the application service boundary with decision, score, rules version, reason codes, and duration in milliseconds. Full request payloads, IP addresses, device IDs, and beneficiary IDs are not logged.
+- 2026-09-13: The Loop Controller workflow includes Guideline Compliance Reviewer as the final strict `docs/guidelines/` gate. It runs after QA, Functional Tester, Security Reviewer, and Code Reviewer have no blockers, and its approval is required before marking a workflow complete.
 
 ### Current Milestone
 
@@ -189,6 +192,9 @@ Implemented:
 - Dockerized application runtime with a multi-stage `Dockerfile`, `.dockerignore`, and Docker Compose `app` service wired to PostgreSQL.
 - Docker Compose app and PostgreSQL published ports are bound to `127.0.0.1`.
 - Endpoint tests for successful evaluation, `APPROVE`, `CHALLENGE`, `REVIEW`, `DENY`, invalid payload, invalid payment method, missing customer, duplicate transaction ID, and audit persistence.
+- Correlation-id filter for `X-Correlation-Id` request/response handling and MDC.
+- Evaluation summary logging with `durationMs`.
+- README with local Docker Compose, Gradle build/test, endpoint, correlation header, and curl examples.
 
 Validated:
 
@@ -210,6 +216,10 @@ Validated:
 - 2026-09-12: `docker compose config` confirms app and PostgreSQL host port bindings use `127.0.0.1`.
 - 2026-09-12: `docker compose up --build -d app` starts PostgreSQL and the application container.
 - 2026-09-12: Functional Tester validated `POST /transactions/evaluate` through Docker Compose plus `curl`, including a successful request, invalid payload, missing customer, and database persistence checks.
+- 2026-09-13: Guidelines audit correction `./gradlew test --tests 'com.fraudshield.transactional.transaction.api.TransactionEvaluationControllerTest'` passes.
+- 2026-09-13: Guidelines audit correction `./gradlew test` passes.
+- 2026-09-13: Guidelines audit correction `./gradlew build` passes.
+- 2026-09-13: Dockerized functional validation with `curl` confirms incoming `X-Correlation-Id` is preserved, absent correlation IDs are generated, invalid payloads and missing customers return stable `400` errors with correlation headers, successful evaluations persist audit records, and summary logs include `durationMs`.
 
 Review:
 
@@ -227,6 +237,8 @@ Review:
 - Persistence tests are wired into the build and require the Docker Compose PostgreSQL service for local validation.
 - Local Testcontainers execution was blocked by the machine-level `~/.testcontainers.properties` forcing a Docker client strategy that does not work with the active Docker Desktop context. Phase 3 persistence validation used the Docker Compose PostgreSQL service instead.
 - Runtime Docker image currently uses the default container user. Security Reviewer marked this non-blocking for MVP local development; consider adding a non-root runtime user in a future hardening pass.
+- Incoming correlation IDs are trimmed and echoed without length or character normalization. Security Reviewer marked this non-blocking for MVP; future hardening should cap length and restrict characters.
+- Successful evaluation logging currently happens before transaction commit returns. Code Reviewer marked this non-blocking for MVP; future hardening can log after commit via transaction synchronization.
 
 ### Useful References
 

@@ -1,6 +1,6 @@
 ---
 name: fraudshield-loop-controller
-description: Start the FraudShield Transactional Loop Controller workflow for a requested MVP phase, using real subagents for implementation, QA, functional testing, security review, and code review.
+description: Start the FraudShield Transactional Loop Controller workflow for a requested MVP phase, using real subagents for implementation, QA, functional testing, security review, code review, and final guideline compliance review.
 metadata:
   short-description: Run FraudShield phase loop with real subagents
   argument-hint: PHASE=<phase-doc-or-name> [FOCUS="scope"]
@@ -40,7 +40,7 @@ If the requested phase is a name rather than a path, resolve it against `docs/mv
 
 The Loop Controller must create real subagents, not simulated roles. Report each subagent id, nickname if available, role, and final status.
 
-Create and sequence these subagents. Developer runs first. After Developer reports, QA, Functional Tester, Security Reviewer, and Code Reviewer should run in parallel when their work is read-only or limited to explicitly authorized, non-overlapping test changes. The Loop Controller must wait for all validation and review reports before deciding whether to delegate corrections back to Developer.
+Create and sequence these subagents. Developer runs first. After Developer reports, QA, Functional Tester, Security Reviewer, and Code Reviewer should run in parallel when their work is read-only or limited to explicitly authorized, non-overlapping test changes. The Loop Controller must wait for all validation and review reports before deciding whether to delegate corrections back to Developer. After that parallel wave is blocker-free, the Loop Controller must run Guideline Compliance Reviewer as the final strict compliance gate against `docs/guidelines/`.
 
 1. Developer subagent
    - Follow `.agents/developer.md`.
@@ -74,6 +74,13 @@ Create and sequence these subagents. Developer runs first. After Developer repor
    - Prefer read-only review.
    - Lead with blocking findings, then non-blocking findings and test gaps.
 
+6. Guideline Compliance Reviewer subagent
+   - Follow `.agents/guideline-compliance-reviewer.md`.
+   - Run after QA, Functional Tester, Security Reviewer, and Code Reviewer have no blockers.
+   - Stay read-only.
+   - Strictly verify the final change against `docs/guidelines/`, the current phase document, roadmap scope, and prior subagent reports.
+   - Report status as `APPROVED` or `CHANGES_REQUESTED`, including blocking guideline deviations, non-blocking observations, evidence reviewed, and required corrections.
+
 ## Loop Rules
 
 - Keep tasks narrow and non-overlapping.
@@ -81,6 +88,8 @@ Create and sequence these subagents. Developer runs first. After Developer repor
 - Run Developer before validation and review agents. After Developer completes, run QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel when their scopes are read-only or otherwise non-overlapping.
 - Wait for all QA, Functional Tester, Security Reviewer, and Code Reviewer reports before deciding whether the implementation passes.
 - If QA, Functional Tester, Security Reviewer, or Code Reviewer finds a blocker, consolidate all blocking findings into one correction handoff to the Developer subagent, then repeat the Developer correction plus parallel validation/review cycle until no blockers remain or the workflow is genuinely blocked.
+- Once the parallel validation/review wave has no blockers, run Guideline Compliance Reviewer as the final gate.
+- If Guideline Compliance Reviewer finds a blocker, consolidate its findings into a correction handoff to Developer, then repeat Developer correction, parallel validation/review, and final guideline compliance review.
 - The Loop Controller may update only `.agents/shared-context.md`, and only at the end of the workflow.
 - Respect existing user changes in the working tree. Do not revert unrelated changes.
 
@@ -95,6 +104,7 @@ Return a concise final report with:
 - Functional validation status
 - Security review status
 - Review status
+- Guideline compliance status
 - Unresolved risks
 - Whether the workflow followed official subagent best practices
 
