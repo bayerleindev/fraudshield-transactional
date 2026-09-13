@@ -18,9 +18,12 @@ import com.fraudshield.transactional.transaction.infra.TransactionRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -43,6 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Tag("integration")
+@ExtendWith(OutputCaptureExtension.class)
 class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
 	private static final Instant NOW = Instant.parse("2026-09-12T14:30:00Z");
 
@@ -180,6 +184,47 @@ class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
 						"RECENT_PASSWORD_CHANGE",
 						"NEW_ACCOUNT"
 				)));
+	}
+
+	@Test
+	void successfulEvaluationLogDoesNotExposeSensitiveDecisionData(CapturedOutput output) throws Exception {
+		customerRepository.save(new CustomerEntity("cus-api-log-sensitive", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.header("X-Correlation-Id", "corr-api-log-safe")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-api-log-sensitive")
+								.customerId("cus-api-log-sensitive")
+								.amount(new BigDecimal("8500.00"))
+								.beneficiaryId("ben-api-log-sensitive")
+								.deviceId("dev-api-log-sensitive")
+								.build())))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.decision").value("REVIEW"));
+
+		assertThat(output.getOut())
+				.contains("transaction_evaluation_completed")
+				.contains("correlationId=corr-api-log-safe")
+				.contains("rulesVersion=v1")
+				.contains("durationMs=")
+				.doesNotContain(
+						"transactionId=",
+						"customerId=",
+						"decision=",
+						"score=",
+						"reasonCodes=",
+						"requestFingerprint",
+						"fingerprint",
+						"tx-api-log-sensitive",
+						"cus-api-log-sensitive",
+						"ben-api-log-sensitive",
+						"dev-api-log-sensitive",
+						"REVIEW",
+						"HIGH_AMOUNT",
+						"NEW_DEVICE",
+						"NEW_BENEFICIARY"
+				);
 	}
 
 	@Test

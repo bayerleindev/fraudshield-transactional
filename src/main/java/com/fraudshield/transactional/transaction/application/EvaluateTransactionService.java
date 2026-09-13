@@ -13,11 +13,13 @@ import com.fraudshield.transactional.risk.domain.RiskEvaluationContext;
 import com.fraudshield.transactional.risk.domain.RiskReason;
 import com.fraudshield.transactional.shared.exception.DomainException;
 import com.fraudshield.transactional.shared.idempotency.RequestFingerprintService;
+import com.fraudshield.transactional.shared.observability.CorrelationIdFilter;
 import com.fraudshield.transactional.transaction.domain.TransactionEvaluation;
 import com.fraudshield.transactional.transaction.infra.TransactionEntity;
 import com.fraudshield.transactional.transaction.infra.TransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,7 +98,7 @@ public class EvaluateTransactionService {
 		));
 
 		persistAuditTrail(transaction, assessment, evaluatedAt, requestFingerprint.value());
-		logSuccessfulEvaluation(transaction, assessment, startedAtNanos);
+		logSuccessfulEvaluation(assessment.rulesVersion(), startedAtNanos);
 
 		return new TransactionEvaluationResult(transaction.transactionId(), assessment);
 	}
@@ -153,24 +155,13 @@ public class EvaluateTransactionService {
 		riskDecisionRepository.save(decision);
 	}
 
-	private static void logSuccessfulEvaluation(
-			TransactionEvaluation transaction,
-			RiskAssessment assessment,
-			long startedAtNanos
-	) {
+	private static void logSuccessfulEvaluation(String rulesVersion, long startedAtNanos) {
 		var durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
-		var reasonCodes = assessment.reasons().stream()
-				.map(reason -> reason.code().name())
-				.toList();
 
 		LOGGER.info(
-				"transaction_evaluation_completed transactionId={} customerId={} decision={} score={} rulesVersion={} reasonCodes={} durationMs={}",
-				transaction.transactionId(),
-				transaction.customerId(),
-				assessment.decision(),
-				assessment.score(),
-				assessment.rulesVersion(),
-				reasonCodes,
+				"transaction_evaluation_completed correlationId={} rulesVersion={} durationMs={}",
+				MDC.get(CorrelationIdFilter.MDC_KEY),
+				rulesVersion,
 				durationMs
 		);
 	}
