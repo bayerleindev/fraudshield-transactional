@@ -2,6 +2,8 @@
 
 FraudShield Transactional is a transactional anti-fraud backend that receives financial transaction evaluations, applies deterministic risk rules, returns an explainable decision, and persists the audit trail in PostgreSQL.
 
+Integration documentation for GitHub Pages lives in `docs/index.html`.
+
 MVP 1 focuses on a small, runnable backend portfolio project:
 
 ```text
