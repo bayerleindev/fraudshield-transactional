@@ -101,6 +101,9 @@ Keep docs practical. Prefer examples and acceptance criteria over long essays.
 - Use clear commit messages.
 - Do not mix unrelated phases in one commit when avoidable.
 - Run relevant tests before committing.
+- Every development cycle must happen on its own pushed branch before handoff.
+- Use a branch type that matches the work: `feature/*` for new behavior, `bugfix/*` for defect corrections, and `hotfix/*` for urgent production-style fixes.
+- Push the branch to the remote after implementation and validation so reviewers and follow-up agents can inspect the exact delivered state.
 - Mention known limitations in the final handoff.
 
 ## Review Rules

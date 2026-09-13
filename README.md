@@ -30,11 +30,19 @@ docker compose down
 
 ## Build And Test
 
-Run the test suite:
+Run fast tests that do not require Docker:
 
 ```bash
 ./gradlew test
 ```
+
+Run PostgreSQL-backed integration tests with Testcontainers:
+
+```bash
+./gradlew integrationTest
+```
+
+Make sure Docker Desktop or another Docker daemon is running before executing `integrationTest`.
 
 Build the application:
 

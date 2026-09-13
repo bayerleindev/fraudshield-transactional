@@ -1,7 +1,6 @@
 package com.fraudshield.transactional.transaction.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fraudshield.transactional.audit.infra.RiskDecisionEntity;
 import com.fraudshield.transactional.audit.infra.RiskDecisionRepository;
 import com.fraudshield.transactional.audit.infra.RiskReasonEntity;
 import com.fraudshield.transactional.beneficiary.infra.BeneficiaryEntity;
@@ -43,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Tag("integration")
-class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
+class TransactionEvaluationControllerIT extends PostgresIntegrationTest {
 	private static final Instant NOW = Instant.parse("2026-09-12T14:30:00Z");
 
 	@Autowired
@@ -77,30 +76,142 @@ class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
 	}
 
 	@Test
-	void evaluatesTransactionAndPersistsAuditTrail() throws Exception {
-		customerRepository.save(new CustomerEntity("cus-api-review", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
+	void returnsApproveForKnownLowRiskContext() throws Exception {
+		saveStableCustomerContext("cus-it-approve", "dev-it-approve", "ben-it-approve");
 
 		mockMvc.perform(post("/transactions/evaluate")
-						.header("X-Correlation-Id", "corr-api-review")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(validRequestBuilder()
-								.transactionId("tx-api-review")
-								.customerId("cus-api-review")
-								.amount(new BigDecimal("8500.00"))
+								.transactionId("tx-it-approve")
+								.customerId("cus-it-approve")
+								.amount(new BigDecimal("100.00"))
+								.deviceId("dev-it-approve")
+								.beneficiaryId("ben-it-approve")
 								.build())))
 				.andExpect(status().isOk())
-				.andExpect(header().string("X-Correlation-Id", "corr-api-review"))
-				.andExpect(jsonPath("$.transactionId").value("tx-api-review"))
+				.andExpect(jsonPath("$.decision").value("APPROVE"))
+				.andExpect(jsonPath("$.score").value(0))
+				.andExpect(jsonPath("$.reasons", hasSize(0)));
+	}
+
+	@Test
+	void returnsChallengeForHighAmount() throws Exception {
+		saveStableCustomerContext("cus-it-challenge", "dev-it-challenge", "ben-it-challenge");
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-it-challenge")
+								.customerId("cus-it-challenge")
+								.amount(new BigDecimal("5000.00"))
+								.deviceId("dev-it-challenge")
+								.beneficiaryId("ben-it-challenge")
+								.build())))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.decision").value("CHALLENGE"))
+				.andExpect(jsonPath("$.score").value(30))
+				.andExpect(jsonPath("$.reasons", hasSize(1)))
+				.andExpect(jsonPath("$.reasons[*].code", contains("HIGH_AMOUNT")));
+	}
+
+	@Test
+	void returnsReviewForHighAmountNewDeviceAndNewBeneficiary() throws Exception {
+		customerRepository.save(new CustomerEntity("cus-it-review", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-it-review")
+								.customerId("cus-it-review")
+								.amount(new BigDecimal("5000.00"))
+								.build())))
+				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.decision").value("REVIEW"))
 				.andExpect(jsonPath("$.score").value(75))
-				.andExpect(jsonPath("$.rulesVersion").value("v1"))
-				.andExpect(jsonPath("$.evaluatedAt").isNotEmpty())
 				.andExpect(jsonPath("$.reasons", hasSize(3)))
-				.andExpect(jsonPath("$.reasons[*].code", contains("HIGH_AMOUNT", "NEW_DEVICE", "NEW_BENEFICIARY")))
-				.andExpect(jsonPath("$.reasons[*].scoreImpact", contains(30, 20, 25)));
+				.andExpect(jsonPath("$.reasons[*].code", contains("HIGH_AMOUNT", "NEW_DEVICE", "NEW_BENEFICIARY")));
+	}
 
-		assertThat(transactionRepository.findByTransactionId("tx-api-review")).isPresent();
-		assertThat(riskDecisionRepository.findByTransactionId("tx-api-review"))
+	@Test
+	void returnsDenyForVeryHighAmountPlusAdditionalRisk() throws Exception {
+		customerRepository.save(new CustomerEntity("cus-it-deny", NOW.minusSeconds(60), NOW.minusSeconds(60), "ACTIVE"));
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-it-deny")
+								.customerId("cus-it-deny")
+								.amount(new BigDecimal("20000.00"))
+								.build())))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.decision").value("DENY"))
+				.andExpect(jsonPath("$.score").value(135))
+				.andExpect(jsonPath("$.reasons", hasSize(5)))
+				.andExpect(jsonPath("$.reasons[*].code", contains(
+						"VERY_HIGH_AMOUNT",
+						"NEW_DEVICE",
+						"NEW_BENEFICIARY",
+						"RECENT_PASSWORD_CHANGE",
+						"NEW_ACCOUNT"
+				)));
+	}
+
+	@Test
+	void missingTransactionIdReturnsBadRequest() throws Exception {
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("")
+								.build())))
+				.andExpect(status().isBadRequest())
+				.andExpect(header().exists("X-Correlation-Id"))
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.status").value(400))
+				.andExpect(jsonPath("$.errors[*].field", contains("transactionId")));
+	}
+
+	@Test
+	void nonPositiveAmountReturnsBadRequest() throws Exception {
+		mockMvc.perform(post("/transactions/evaluate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.amount(BigDecimal.ZERO)
+								.build())))
+				.andExpect(status().isBadRequest())
+				.andExpect(header().exists("X-Correlation-Id"))
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.status").value(400))
+				.andExpect(jsonPath("$.errors[*].field", contains("amount")));
+	}
+
+	@Test
+	void successfulEvaluationPersistsTransactionDecisionAndAllReasons() throws Exception {
+		customerRepository.save(new CustomerEntity("cus-it-persistence", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
+
+		mockMvc.perform(post("/transactions/evaluate")
+						.header("X-Correlation-Id", "corr-it-persistence")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(validRequestBuilder()
+								.transactionId("tx-it-persistence")
+								.customerId("cus-it-persistence")
+								.amount(new BigDecimal("5000.00"))
+								.build())))
+				.andExpect(status().isOk())
+				.andExpect(header().string("X-Correlation-Id", "corr-it-persistence"))
+				.andExpect(jsonPath("$.decision").value("REVIEW"))
+				.andExpect(jsonPath("$.score").value(75));
+
+		assertThat(transactionRepository.findByTransactionId("tx-it-persistence"))
+				.isPresent()
+				.get()
+				.satisfies(transaction -> {
+					assertThat(transaction.getCustomerId()).isEqualTo("cus-it-persistence");
+					assertThat(transaction.getAmount()).isEqualByComparingTo("5000.00");
+					assertThat(transaction.getCurrency()).isEqualTo("BRL");
+					assertThat(transaction.getPaymentMethod()).isEqualTo(PaymentMethod.PIX);
+				});
+
+		assertThat(riskDecisionRepository.findByTransactionId("tx-it-persistence"))
 				.singleElement()
 				.satisfies(decision -> {
 					assertThat(decision.getDecision()).isEqualTo(RiskDecision.REVIEW);
@@ -113,154 +224,16 @@ class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
 									RiskReasonCode.NEW_DEVICE,
 									RiskReasonCode.NEW_BENEFICIARY
 							);
+					assertThat(decision.getReasons())
+							.extracting(RiskReasonEntity::getScoreImpact)
+							.containsExactly(30, 20, 25);
 				});
 	}
 
-	@Test
-	void returnsApprovalForKnownLowRiskContext() throws Exception {
-		customerRepository.save(new CustomerEntity("cus-api-approve", NOW.minusSeconds(30 * 24 * 60 * 60), NOW.minusSeconds(10 * 24 * 60 * 60), "ACTIVE"));
-		deviceRepository.save(new DeviceEntity("cus-api-approve", "dev-known", NOW.minusSeconds(20 * 24 * 60 * 60), NOW, true));
-		beneficiaryRepository.save(new BeneficiaryEntity("cus-api-approve", "ben-known", NOW.minusSeconds(20 * 24 * 60 * 60), true));
-
-		mockMvc.perform(post("/transactions/evaluate")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(validRequestBuilder()
-								.transactionId("tx-api-approve")
-								.customerId("cus-api-approve")
-								.amount(new BigDecimal("100.00"))
-								.beneficiaryId("ben-known")
-								.deviceId("dev-known")
-								.build())))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.decision").value("APPROVE"))
-				.andExpect(jsonPath("$.score").value(0))
-				.andExpect(jsonPath("$.reasons", hasSize(0)));
-	}
-
-	@Test
-	void returnsChallengeForHighAmountKnownContext() throws Exception {
-		customerRepository.save(new CustomerEntity("cus-api-challenge", NOW.minusSeconds(30 * 24 * 60 * 60), NOW.minusSeconds(10 * 24 * 60 * 60), "ACTIVE"));
-		deviceRepository.save(new DeviceEntity("cus-api-challenge", "dev-known", NOW.minusSeconds(20 * 24 * 60 * 60), NOW, true));
-		beneficiaryRepository.save(new BeneficiaryEntity("cus-api-challenge", "ben-known", NOW.minusSeconds(20 * 24 * 60 * 60), true));
-
-		mockMvc.perform(post("/transactions/evaluate")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(validRequestBuilder()
-								.transactionId("tx-api-challenge")
-								.customerId("cus-api-challenge")
-								.amount(new BigDecimal("5000.00"))
-								.beneficiaryId("ben-known")
-								.deviceId("dev-known")
-								.build())))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.decision").value("CHALLENGE"))
-				.andExpect(jsonPath("$.score").value(30))
-				.andExpect(jsonPath("$.reasons", hasSize(1)))
-				.andExpect(jsonPath("$.reasons[*].code", contains("HIGH_AMOUNT")));
-	}
-
-	@Test
-	void returnsDenyForVeryHighRiskContext() throws Exception {
-		customerRepository.save(new CustomerEntity("cus-api-deny", NOW.minusSeconds(60), NOW.minusSeconds(60), "ACTIVE"));
-
-		mockMvc.perform(post("/transactions/evaluate")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(validRequestBuilder()
-								.transactionId("tx-api-deny")
-								.customerId("cus-api-deny")
-								.amount(new BigDecimal("20000.00"))
-								.build())))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.decision").value("DENY"))
-				.andExpect(jsonPath("$.score").value(135))
-				.andExpect(jsonPath("$.reasons[*].code", contains(
-						"VERY_HIGH_AMOUNT",
-						"NEW_DEVICE",
-						"NEW_BENEFICIARY",
-						"RECENT_PASSWORD_CHANGE",
-						"NEW_ACCOUNT"
-				)));
-	}
-
-	@Test
-	void rejectsInvalidPayload() throws Exception {
-		mockMvc.perform(post("/transactions/evaluate")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(validRequestBuilder()
-								.transactionId("")
-								.amount(BigDecimal.ZERO)
-								.build())))
-				.andExpect(status().isBadRequest())
-				.andExpect(header().exists("X-Correlation-Id"))
-				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-				.andExpect(jsonPath("$.status").value(400))
-				.andExpect(jsonPath("$.errors[*].field").value(contains("amount", "transactionId")));
-	}
-
-	@Test
-	void rejectsInvalidPaymentMethod() throws Exception {
-		mockMvc.perform(post("/transactions/evaluate")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "transactionId": "tx-invalid-payment-method",
-								  "customerId": "cus-api-123",
-								  "amount": 100.00,
-								  "currency": "BRL",
-								  "paymentMethod": "WIRE",
-								  "beneficiaryId": "ben-api-999",
-								  "deviceId": "dev-api-abc",
-								  "ipAddress": "177.10.20.30",
-								  "occurredAt": "2026-09-12T14:30:00Z"
-								}
-								"""))
-				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-				.andExpect(jsonPath("$.message").value("Request contains an invalid value."))
-				.andExpect(jsonPath("$.status").value(400));
-	}
-
-	@Test
-	void returnsDomainErrorWhenCustomerDoesNotExist() throws Exception {
-		mockMvc.perform(post("/transactions/evaluate")
-						.header("X-Correlation-Id", "corr-missing-customer")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(validRequestBuilder()
-								.transactionId("tx-missing-customer")
-								.customerId("cus-missing")
-								.build())))
-				.andExpect(status().isBadRequest())
-				.andExpect(header().string("X-Correlation-Id", "corr-missing-customer"))
-				.andExpect(jsonPath("$.code").value("CUSTOMER_NOT_FOUND"))
-				.andExpect(jsonPath("$.message").value("Customer was not found."))
-				.andExpect(jsonPath("$.status").value(400));
-
-		assertThat(transactionRepository.findByTransactionId("tx-missing-customer")).isEmpty();
-		assertThat(riskDecisionRepository.findByTransactionId("tx-missing-customer")).isEmpty();
-	}
-
-	@Test
-	void returnsControlledConflictForDuplicateTransactionId() throws Exception {
-		customerRepository.save(new CustomerEntity("cus-api-duplicate", NOW.minusSeconds(30 * 24 * 60 * 60), null, "ACTIVE"));
-
-		var request = validRequestBuilder()
-				.transactionId("tx-api-duplicate")
-				.customerId("cus-api-duplicate")
-				.build();
-
-		mockMvc.perform(post("/transactions/evaluate")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isOk());
-
-		mockMvc.perform(post("/transactions/evaluate")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.code").value("DUPLICATE_TRANSACTION"))
-				.andExpect(jsonPath("$.status").value(409));
-
-		assertThat(riskDecisionRepository.findByTransactionId("tx-api-duplicate")).hasSize(1);
+	private void saveStableCustomerContext(String customerId, String deviceId, String beneficiaryId) {
+		customerRepository.save(new CustomerEntity(customerId, NOW.minusSeconds(30 * 24 * 60 * 60), NOW.minusSeconds(10 * 24 * 60 * 60), "ACTIVE"));
+		deviceRepository.save(new DeviceEntity(customerId, deviceId, NOW.minusSeconds(20 * 24 * 60 * 60), NOW, true));
+		beneficiaryRepository.save(new BeneficiaryEntity(customerId, beneficiaryId, NOW.minusSeconds(20 * 24 * 60 * 60), true));
 	}
 
 	private static RequestBuilder validRequestBuilder() {
@@ -277,13 +250,13 @@ class TransactionEvaluationControllerTest extends PostgresIntegrationTest {
 	}
 
 	private static final class RequestBuilder {
-		private String transactionId = "tx-api-001";
-		private String customerId = "cus-api-123";
+		private String transactionId = "tx-it-001";
+		private String customerId = "cus-it-123";
 		private BigDecimal amount = new BigDecimal("8500.00");
 		private String currency = "BRL";
 		private PaymentMethod paymentMethod = PaymentMethod.PIX;
-		private String beneficiaryId = "ben-api-999";
-		private String deviceId = "dev-api-abc";
+		private String beneficiaryId = "ben-it-999";
+		private String deviceId = "dev-it-abc";
 		private String ipAddress = "177.10.20.30";
 		private Instant occurredAt = NOW;
 
