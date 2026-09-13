@@ -47,29 +47,3 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 	environment("DOCKER_API_VERSION", "1.41")
 }
-
-tasks.test {
-	exclude(
-		"**/*IT.class",
-		"**/PersistenceRepositoryTest.class",
-		"**/TransactionEvaluationControllerTest.class"
-	)
-
-	useJUnitPlatform {
-		excludeTags("integration")
-	}
-}
-
-tasks.register<Test>("integrationTest") {
-	description = "Runs integration tests that require Docker/Testcontainers."
-	group = "verification"
-
-	testClassesDirs = sourceSets.test.get().output.classesDirs
-	classpath = sourceSets.test.get().runtimeClasspath
-	shouldRunAfter(tasks.test)
-	outputs.upToDateWhen { false }
-
-	useJUnitPlatform {
-		includeTags("integration")
-	}
-}
