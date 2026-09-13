@@ -15,6 +15,7 @@ import com.fraudshield.transactional.support.PostgresIntegrationTest;
 import com.fraudshield.transactional.transaction.domain.PaymentMethod;
 import com.fraudshield.transactional.transaction.infra.TransactionRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -40,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Tag("integration")
 class TransactionEvaluationControllerIT extends PostgresIntegrationTest {
 	private static final Instant NOW = Instant.parse("2026-09-12T14:30:00Z");
 

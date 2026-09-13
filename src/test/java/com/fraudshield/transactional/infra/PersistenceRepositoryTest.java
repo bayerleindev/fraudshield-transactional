@@ -15,8 +15,10 @@ import com.fraudshield.transactional.support.PostgresIntegrationTest;
 import com.fraudshield.transactional.transaction.domain.PaymentMethod;
 import com.fraudshield.transactional.transaction.infra.TransactionEntity;
 import com.fraudshield.transactional.transaction.infra.TransactionRepository;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -28,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
+@Tag("integration")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class PersistenceRepositoryTest extends PostgresIntegrationTest {
 	@Autowired
 	private CustomerRepository customerRepository;
