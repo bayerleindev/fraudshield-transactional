@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/ev-roadmaps
   workflow_dispatch:
 
 permissions:
