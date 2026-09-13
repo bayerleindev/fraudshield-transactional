@@ -1,25 +1,43 @@
 const snippets = {
-  run: `docker compose up -d postgres
-./gradlew bootRun`,
-  seed: `docker exec fraudshield-postgres psql -U fraudshield -d fraudshield -c \\
-  "insert into customers (customer_id, created_at, last_password_change_at, status)
-   values ('cus-demo-001', now() - interval '30 days', null, 'ACTIVE')
-   on conflict (customer_id) do nothing;"`,
-  curl: `curl -i \\
-  -H 'Content-Type: application/json' \\
-  -H 'X-Correlation-Id: local-demo-001' \\
-  -d '{
-    "transactionId": "tx-demo-001",
-    "customerId": "cus-demo-001",
-    "amount": 8500.00,
-    "currency": "BRL",
-    "paymentMethod": "PIX",
-    "beneficiaryId": "ben-demo-001",
-    "deviceId": "dev-demo-001",
-    "ipAddress": "177.10.20.30",
-    "occurredAt": "2026-09-12T14:30:00Z"
-  }' \\
-  http://localhost:8080/transactions/evaluate`
+  approve: `{
+  "amount": 120.00,
+  "currency": "BRL",
+  "paymentMethod": "PIX",
+  "deviceStatus": "known_trusted",
+  "beneficiaryStatus": "known",
+  "customerAge": "older_than_7_days",
+  "expectedDecision": "APPROVE",
+  "expectedReasons": []
+}`,
+  review: `{
+  "amount": 8500.00,
+  "currency": "BRL",
+  "paymentMethod": "PIX",
+  "deviceStatus": "new",
+  "beneficiaryStatus": "new",
+  "customerAge": "older_than_7_days",
+  "expectedDecision": "REVIEW",
+  "expectedReasons": [
+    "HIGH_AMOUNT",
+    "NEW_DEVICE",
+    "NEW_BENEFICIARY"
+  ]
+}`,
+  deny: `{
+  "amount": 25000.00,
+  "currency": "BRL",
+  "paymentMethod": "PIX",
+  "deviceStatus": "new",
+  "beneficiaryStatus": "new",
+  "customerAge": "new_account",
+  "expectedDecision": "DENY",
+  "expectedReasons": [
+    "VERY_HIGH_AMOUNT",
+    "NEW_DEVICE",
+    "NEW_BENEFICIARY",
+    "NEW_ACCOUNT"
+  ]
+}`
 };
 
 const snippet = document.querySelector("#snippet");

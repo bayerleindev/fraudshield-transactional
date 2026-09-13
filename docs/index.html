@@ -19,7 +19,7 @@
     <nav class="nav" aria-label="Navegacao principal">
       <a href="#integracao">Integracao</a>
       <a href="#contrato">Contrato</a>
-      <a href="#funcionalidades">Funcionalidades</a>
+      <a href="#funcionalidades">Regras</a>
       <a href="#roadmap">Roadmap</a>
     </nav>
   </header>
@@ -33,7 +33,7 @@
         <h1 id="hero-title">FraudShield Transactional</h1>
         <p class="hero-copy">
           Avalie transacoes financeiras em tempo real, receba uma decisao de risco explicavel
-          e preserve uma trilha de auditoria consistente em PostgreSQL.
+          e use motivos claros para aprovar, desafiar, revisar ou negar cada operacao.
         </p>
         <div class="hero-actions" aria-label="Acoes principais">
           <a class="button primary" href="#quickstart">Comecar integracao</a>
@@ -45,7 +45,7 @@
     <section class="status-band" aria-label="Resumo operacional">
       <div>
         <span class="metric-value">1</span>
-        <span class="metric-label">endpoint publico no MVP</span>
+        <span class="metric-label">endpoint de avaliacao</span>
       </div>
       <div>
         <span class="metric-value">7</span>
@@ -70,7 +70,7 @@
         <article>
           <span>01</span>
           <h3>Cadastre ou garanta o cliente</h3>
-          <p>O `customerId` precisa existir no banco antes da avaliacao. No ambiente local, isso pode ser feito com um seed SQL.</p>
+          <p>O `customerId` precisa representar um cliente conhecido antes da avaliacao da transacao.</p>
         </article>
         <article>
           <span>02</span>
@@ -85,28 +85,36 @@
         <article>
           <span>04</span>
           <h3>Preserve rastreabilidade</h3>
-          <p>Envie `X-Correlation-Id` para conectar logs, chamadas e auditoria. A API devolve o mesmo identificador na resposta.</p>
+          <p>Envie `X-Correlation-Id` para rastrear a mesma avaliacao entre chamada, resposta e auditoria. A API devolve o mesmo identificador.</p>
         </article>
       </div>
     </section>
 
     <section class="section split" id="quickstart">
       <div>
-        <p class="eyebrow">Quickstart local</p>
-        <h2>Suba o servico e faca a primeira avaliacao</h2>
+        <p class="eyebrow">Exemplos de negocio</p>
+        <h2>Compare cenarios antes de integrar</h2>
         <p>
-          O projeto roda como uma aplicacao Spring Boot 3 com Java 21, PostgreSQL 16,
-          Flyway e Docker Compose. A API local fica em `http://localhost:8080`.
+          Os exemplos mostram como os sinais enviados na transacao afetam o score,
+          a decisao e os motivos retornados para o sistema integrador.
         </p>
       </div>
       <div class="code-panel">
         <div class="code-tabs">
-          <button class="tab active" type="button" data-snippet="run">Run</button>
-          <button class="tab" type="button" data-snippet="seed">Seed</button>
-          <button class="tab" type="button" data-snippet="curl">cURL</button>
+          <button class="tab active" type="button" data-snippet="approve">APPROVE</button>
+          <button class="tab" type="button" data-snippet="review">REVIEW</button>
+          <button class="tab" type="button" data-snippet="deny">DENY</button>
         </div>
-        <pre><code id="snippet">docker compose up -d postgres
-./gradlew bootRun</code></pre>
+        <pre><code id="snippet">{
+  "amount": 120.00,
+  "currency": "BRL",
+  "paymentMethod": "PIX",
+  "deviceStatus": "known_trusted",
+  "beneficiaryStatus": "known",
+  "customerAge": "older_than_7_days",
+  "expectedDecision": "APPROVE",
+  "expectedReasons": []
+}</code></pre>
       </div>
     </section>
 
@@ -128,7 +136,7 @@
         <article class="spec-block">
           <h3>Campos aceitos</h3>
           <dl>
-            <div><dt>`currency`</dt><dd>Apenas `BRL` no MVP atual.</dd></div>
+            <div><dt>`currency`</dt><dd>Apenas `BRL` na versao atual.</dd></div>
             <div><dt>`paymentMethod`</dt><dd>`PIX` ou `CARD`.</dd></div>
             <div><dt>`amount`</dt><dd>Obrigatorio e maior que zero.</dd></div>
             <div><dt>`occurredAt`</dt><dd>Instant ISO-8601, como `2026-09-12T14:30:00Z`.</dd></div>
@@ -197,16 +205,16 @@
     <section class="section" id="funcionalidades">
       <div class="section-heading wide">
         <p class="eyebrow">Funcionalidades</p>
-        <h2>O que o MVP entrega hoje</h2>
-        <p>O FraudShield foi desenhado como um monolito modular, com contratos claros e regras explicaveis para facilitar avaliacao tecnica e evolucao controlada.</p>
+        <h2>O que a integracao entrega hoje</h2>
+        <p>O FraudShield prioriza decisoes previsiveis, regras transparentes e respostas que podem ser usadas diretamente no fluxo transacional.</p>
       </div>
       <div class="feature-grid">
-        <article><h3>Avaliacao REST</h3><p>Endpoint HTTP sincrono para avaliar transacoes financeiras em tempo real.</p></article>
-        <article><h3>Regras deterministicas</h3><p>Motor em memoria com regras previsiveis para valor alto, dispositivo, beneficiario e contexto do cliente.</p></article>
+        <article><h3>Avaliacao sincrona</h3><p>Retorna a decisao antifraude durante o fluxo de autorizacao da transacao.</p></article>
+        <article><h3>Regras deterministicas</h3><p>Regras previsiveis para valor alto, dispositivo, beneficiario e contexto do cliente.</p></article>
         <article><h3>Decisao explicavel</h3><p>Cada resposta inclui `reasons` com codigo, descricao e impacto no score.</p></article>
-        <article><h3>Auditoria persistida</h3><p>Transacao, decisao e motivos sao registrados em PostgreSQL via Spring Data JPA.</p></article>
-        <article><h3>Migracoes versionadas</h3><p>Flyway controla a evolucao do schema para clientes, dispositivos, beneficiarios, transacoes e risco.</p></article>
-        <article><h3>Correlacao operacional</h3><p>`X-Correlation-Id` conecta request, response e logs da aplicacao.</p></article>
+        <article><h3>Rastreabilidade</h3><p>Cada avaliacao preserva transacao, decisao, motivos, versao das regras e horario da analise.</p></article>
+        <article><h3>Validacao de entrada</h3><p>Campos obrigatorios, moeda, valor, metodo de pagamento e data sao validados antes da analise.</p></article>
+        <article><h3>Correlacao operacional</h3><p>`X-Correlation-Id` conecta a chamada de avaliacao com a resposta e a auditoria.</p></article>
       </div>
 
       <div class="rules-table" role="region" aria-label="Tabela de regras de risco">
@@ -231,6 +239,36 @@
       </div>
     </section>
 
+    <section class="section validation-section">
+      <div class="section-heading wide">
+        <p class="eyebrow">Validacoes</p>
+        <h2>Campos obrigatorios e rejeicoes esperadas</h2>
+        <p>Antes de calcular risco, a API valida o formato da transacao. Requests incompletos ou inconsistentes nao geram decisao antifraude.</p>
+      </div>
+      <div class="rules-table" role="region" aria-label="Tabela de validacoes de entrada">
+        <table>
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Regra</th>
+              <th>Quando falha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>`transactionId`</td><td>Obrigatorio e nao vazio</td><td>`VALIDATION_ERROR` ou `DUPLICATE_TRANSACTION` se ja avaliado</td></tr>
+            <tr><td>`customerId`</td><td>Obrigatorio e associado a um cliente conhecido</td><td>`VALIDATION_ERROR` ou `CUSTOMER_NOT_FOUND`</td></tr>
+            <tr><td>`amount`</td><td>Obrigatorio e maior que zero</td><td>`VALIDATION_ERROR`</td></tr>
+            <tr><td>`currency`</td><td>Obrigatorio e igual a `BRL`</td><td>`VALIDATION_ERROR` ou `INVALID_REQUEST`</td></tr>
+            <tr><td>`paymentMethod`</td><td>Obrigatorio; aceita `PIX` e `CARD`</td><td>`VALIDATION_ERROR` ou `INVALID_REQUEST`</td></tr>
+            <tr><td>`beneficiaryId`</td><td>Obrigatorio e nao vazio</td><td>`VALIDATION_ERROR`</td></tr>
+            <tr><td>`deviceId`</td><td>Obrigatorio e nao vazio</td><td>`VALIDATION_ERROR`</td></tr>
+            <tr><td>`ipAddress`</td><td>Obrigatorio e nao vazio</td><td>`VALIDATION_ERROR`</td></tr>
+            <tr><td>`occurredAt`</td><td>Obrigatorio em formato ISO-8601</td><td>`VALIDATION_ERROR` ou `INVALID_REQUEST`</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="section split">
       <div>
         <p class="eyebrow">Erros</p>
@@ -245,22 +283,22 @@
         <div><strong>INVALID_REQUEST</strong><span>JSON malformado ou enum invalido.</span></div>
         <div><strong>CUSTOMER_NOT_FOUND</strong><span>Cliente informado nao existe.</span></div>
         <div><strong>DUPLICATE_TRANSACTION</strong><span>`transactionId` ja avaliado.</span></div>
-        <div><strong>DUPLICATE_OR_INVALID_REFERENCE</strong><span>Conflito ou referencia invalida na persistencia.</span></div>
+        <div><strong>DUPLICATE_OR_INVALID_REFERENCE</strong><span>Conflito ou referencia invalida para registrar a avaliacao.</span></div>
       </div>
     </section>
 
     <section class="section architecture">
       <div class="section-heading">
-        <p class="eyebrow">Arquitetura</p>
-        <h2>Monolito modular com fronteiras de dominio</h2>
+        <p class="eyebrow">Fluxo de negocio</p>
+        <h2>Da transacao recebida a decisao explicavel</h2>
       </div>
       <div class="architecture-flow" aria-label="Fluxo de avaliacao">
-        <span>Transaction Request</span>
-        <span>Feature Extraction</span>
-        <span>Rule Evaluation</span>
-        <span>Risk Score</span>
-        <span>Decision</span>
-        <span>Audit Log</span>
+        <span>Receber transacao</span>
+        <span>Validar campos</span>
+        <span>Aplicar regras</span>
+        <span>Calcular score</span>
+        <span>Definir decisao</span>
+        <span>Retornar motivos</span>
       </div>
     </section>
 
@@ -268,13 +306,13 @@
       <div class="section-heading wide">
         <p class="eyebrow">Roadmap</p>
         <h2>Evolucao planejada do servico</h2>
-        <p>A evolucao privilegia confiabilidade operacional, consulta posterior e sinais comportamentais antes de introduzir componentes mais caros como mensageria, Redis ou machine learning.</p>
+        <p>A evolucao privilegia confiabilidade operacional, consulta posterior e sinais comportamentais antes de ampliar a complexidade da plataforma.</p>
       </div>
       <div class="timeline">
         <article class="done">
-          <span>MVP 1</span>
+          <span>Atual</span>
           <h3>Avaliacao explicavel</h3>
-          <p>Endpoint de avaliacao, regras v1, decisao explicavel, PostgreSQL, Flyway, testes e Docker Compose.</p>
+          <p>Avaliacao transacional, regras v1, score, decisao final, motivos explicaveis e erros padronizados.</p>
         </article>
         <article>
           <span>EV2</span>
@@ -289,14 +327,14 @@
         <article>
           <span>EV4</span>
           <h3>Plataforma antifraude</h3>
-          <p>Autenticacao, eventos Kafka, observabilidade completa, workflows de revisao manual e preparacao para modelos analiticos.</p>
+          <p>Autenticacao, notificacoes de eventos, workflows de revisao manual e preparacao para modelos analiticos.</p>
         </article>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <p>FraudShield Transactional - Java 21, Spring Boot 3, PostgreSQL, Flyway e Gradle.</p>
+    <p>FraudShield Transactional - guia de integracao, regras e fluxos antifraude.</p>
     <a href="#top">Voltar ao topo</a>
   </footer>
 
