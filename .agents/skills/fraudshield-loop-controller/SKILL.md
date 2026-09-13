@@ -36,6 +36,18 @@ The Loop Controller must follow `.agents/loop-controller.md` and read these file
 
 If the requested phase is a name rather than a path, resolve it against `docs/mvp-1-phases/` and the roadmap.
 
+## Branch Requirement
+
+Every workflow must run on a dedicated Git branch created or selected at the beginning of the orchestration, before Developer starts implementation.
+
+Rules:
+
+- Prefer `feature/*` for new phase work or documentation, `bugfix/*` for defect corrections, and `hotfix/*` only for urgent production-style fixes.
+- Derive the branch name from the requested phase and optional focus, using short kebab-case.
+- If the current branch already exists for the same orchestration, continue on it and report the branch name.
+- If unrelated working-tree changes make branch creation unsafe, pause and ask the user how to proceed.
+- Include the branch name in the plan, Developer handoff, shared context update when relevant, and final report.
+
 ## Subagents
 
 The Loop Controller must create real subagents, not simulated roles. Report each subagent id, nickname if available, role, and final status.

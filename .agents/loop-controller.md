@@ -37,6 +37,7 @@ The Loop Controller may:
 
 - Read project files.
 - Read and update `.agents/shared-context.md`.
+- Create a dedicated Git branch at the beginning of each orchestration.
 - Break user requests into implementation tasks and validation steps.
 - Create a concrete implementation plan.
 - Assign implementation work to Developer.
@@ -66,18 +67,35 @@ For each user-requested task:
 
 1. Read `.agents/shared-context.md`.
 2. Confirm the task fits the current milestone and constraints.
-3. Create a concise implementation plan.
-4. Decide which agents are necessary for the task.
-5. When the user explicitly asks for agents, subagents, or an agent loop, instantiate real subagents for Developer, QA, Functional Tester, Security Reviewer, Code Reviewer, and Guideline Compliance Reviewer instead of simulating those roles in the Loop Controller conversation.
-6. Delegate code, test, documentation, and configuration changes to Developer.
-7. After Developer completes implementation, start QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel when their work can remain read-only or limited to non-overlapping test additions.
-8. Wait for all QA, Functional Tester, Security Reviewer, and Code Reviewer reports before deciding whether the implementation passes or needs correction.
-9. If any validation or review agent raises blocking issues, consolidate the findings into one correction plan and delegate the fix to Developer.
-10. When QA, Functional Tester, Security Reviewer, and Code Reviewer have no blockers, run Guideline Compliance Reviewer as the final strict compliance gate.
-11. If Guideline Compliance Reviewer raises blocking guideline deviations, delegate consolidated corrections to Developer, then repeat parallel validation/review and the final guideline compliance gate.
-12. Repeat until all blockers are resolved.
-13. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
-14. Report the outcome.
+3. Create or switch to a dedicated branch for this orchestration before delegating any implementation work.
+4. Create a concise implementation plan.
+5. Decide which agents are necessary for the task.
+6. When the user explicitly asks for agents, subagents, or an agent loop, instantiate real subagents for Developer, QA, Functional Tester, Security Reviewer, Code Reviewer, and Guideline Compliance Reviewer instead of simulating those roles in the Loop Controller conversation.
+7. Delegate code, test, documentation, and configuration changes to Developer.
+8. After Developer completes implementation, start QA, Functional Tester, Security Reviewer, and Code Reviewer in parallel when their work can remain read-only or limited to non-overlapping test additions.
+9. Wait for all QA, Functional Tester, Security Reviewer, and Code Reviewer reports before deciding whether the implementation passes or needs correction.
+10. If any validation or review agent raises blocking issues, consolidate the findings into one correction plan and delegate the fix to Developer.
+11. When QA, Functional Tester, Security Reviewer, and Code Reviewer have no blockers, run Guideline Compliance Reviewer as the final strict compliance gate.
+12. If Guideline Compliance Reviewer raises blocking guideline deviations, delegate consolidated corrections to Developer, then repeat parallel validation/review and the final guideline compliance gate.
+13. Repeat until all blockers are resolved.
+14. Update `.agents/shared-context.md` with relevant decisions, status, risks, commands, or API changes.
+15. Report the outcome.
+
+## Branching Rules
+
+At the beginning of every orchestration, the Loop Controller must ensure the work happens on a dedicated branch.
+
+Rules:
+
+- Create the branch before Developer starts any implementation.
+- Prefer branch names derived from the requested phase and focus, using the project git convention:
+  - `feature/*` for new behavior or documentation.
+  - `bugfix/*` for defect corrections.
+  - `hotfix/*` for urgent production-style fixes.
+- Use short, kebab-case names, for example `feature/ev1-phase-4-risk-engine` or `bugfix/evaluate-validation-errors`.
+- If already on a branch dedicated to the same orchestration, record that branch in the plan and continue.
+- If the current branch has unrelated uncommitted changes, do not overwrite or revert them. Ask the user how to proceed only when those changes prevent creating or switching to the orchestration branch safely.
+- Include the branch name in the implementation plan, Developer handoff, shared context update when relevant, and final report.
 
 ## Subagent Orchestration Rules
 
