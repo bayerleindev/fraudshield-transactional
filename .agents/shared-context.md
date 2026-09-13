@@ -167,6 +167,8 @@ MVP 1 - Risk Decision API.
 
 Phase 5 - Transaction Evaluation API is completed.
 
+Phase 6 - Integration Tests is in progress. Loop Controller prepared the Phase 6 plan and delegated implementation to Developer subagent `01a09af1-b9c7-70d0-aa08-e264d8f7c8b4`.
+
 Implemented:
 
 - Gradle project with Gradle Wrapper.
@@ -233,6 +235,7 @@ Review:
 
 ### Open Risks
 
+- Phase 6 validation is pending Developer completion, followed by QA, Functional Tester, Security Reviewer, Code Reviewer, and final Guideline Compliance Reviewer gates.
 - Port `8080` must be free for `docker compose up --build -d app` because the app service maps `127.0.0.1:8080:8080`. Use `./gradlew bootRun --args='--server.port=0'` for non-Docker local startup when needed.
 - Persistence tests are wired into the build and require the Docker Compose PostgreSQL service for local validation.
 - Local Testcontainers execution was blocked by the machine-level `~/.testcontainers.properties` forcing a Docker client strategy that does not work with the active Docker Desktop context. Phase 3 persistence validation used the Docker Compose PostgreSQL service instead.
