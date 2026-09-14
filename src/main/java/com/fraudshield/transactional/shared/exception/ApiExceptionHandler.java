@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.Instant;
@@ -57,6 +58,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 						"Request validation failed.",
 						HttpStatus.BAD_REQUEST,
 						fieldErrors
+				));
+	}
+
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	ResponseEntity<ApiErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException exception) {
+		var fieldName = exception.getName() == null ? "request" : exception.getName();
+		return ResponseEntity
+				.badRequest()
+				.body(ApiErrorResponse.from(
+						"VALIDATION_ERROR",
+						"Request validation failed.",
+						HttpStatus.BAD_REQUEST,
+						List.of(new ApiFieldError(fieldName, "must be a valid value"))
 				));
 	}
 

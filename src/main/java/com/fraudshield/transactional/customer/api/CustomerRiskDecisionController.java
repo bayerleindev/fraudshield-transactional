@@ -4,6 +4,7 @@ import com.fraudshield.transactional.customer.application.GetCustomerRiskDecisio
 import com.fraudshield.transactional.risk.api.RiskDecisionSummaryResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,7 +34,7 @@ class CustomerRiskDecisionController {
 
 	@GetMapping("/{customerId}/risk-decisions")
 	ResponseEntity<List<RiskDecisionSummaryResponse>> getRiskDecisions(
-			@PathVariable String customerId,
+			@PathVariable @NotBlank String customerId,
 			@RequestParam(defaultValue = "" + DEFAULT_LIMIT) @Min(1) @Max(MAX_LIMIT) int limit
 	) {
 		return ResponseEntity.ok(getCustomerRiskDecisionsService.getRecentDecisions(customerId, limit));

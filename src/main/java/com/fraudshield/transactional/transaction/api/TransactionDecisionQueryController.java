@@ -2,7 +2,9 @@ package com.fraudshield.transactional.transaction.api;
 
 import com.fraudshield.transactional.risk.api.RiskDecisionDetailResponse;
 import com.fraudshield.transactional.transaction.application.GetTransactionDecisionService;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Objects;
 
+@Validated
 @RestController
 @RequestMapping("/transactions")
 class TransactionDecisionQueryController {
@@ -23,7 +26,7 @@ class TransactionDecisionQueryController {
 	}
 
 	@GetMapping("/{transactionId}/decision")
-	ResponseEntity<RiskDecisionDetailResponse> getDecision(@PathVariable String transactionId) {
+	ResponseEntity<RiskDecisionDetailResponse> getDecision(@PathVariable @NotBlank String transactionId) {
 		return ResponseEntity.ok(getTransactionDecisionService.getLatestDecision(transactionId));
 	}
 }

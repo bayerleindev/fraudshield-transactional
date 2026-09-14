@@ -20,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.Instant;
 
 import static org.hamcrest.Matchers.contains;
@@ -91,6 +92,16 @@ class TransactionDecisionQueryControllerTest extends PostgresIntegrationTest {
 	}
 
 	@Test
+	void rejectsBlankTransactionIdPathVariable() throws Exception {
+		mockMvc.perform(get(URI.create("/transactions/%20%20/decision")))
+				.andExpect(status().isBadRequest())
+				.andExpect(header().exists("X-Correlation-Id"))
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.message").value("Request validation failed."))
+				.andExpect(jsonPath("$.status").value(400));
+	}
+
+	@Test
 	void returnsCustomerRiskDecisionHistoryNewestFirstWithLimit() throws Exception {
 		saveCustomer("cus-query-history");
 		saveCustomer("cus-query-other");
@@ -137,6 +148,35 @@ class TransactionDecisionQueryControllerTest extends PostgresIntegrationTest {
 						.param("limit", "101"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.status").value(400));
+	}
+
+	@Test
+	void rejectsHistoryLimitBelowMinimum() throws Exception {
+		mockMvc.perform(get("/customers/cus-query-history/risk-decisions")
+						.param("limit", "0"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.status").value(400));
+	}
+
+	@Test
+	void rejectsNonNumericHistoryLimit() throws Exception {
+		mockMvc.perform(get("/customers/cus-query-history/risk-decisions")
+						.param("limit", "many"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.status").value(400))
+				.andExpect(jsonPath("$.errors[0].field").value("limit"));
+	}
+
+	@Test
+	void rejectsBlankCustomerIdPathVariable() throws Exception {
+		mockMvc.perform(get(URI.create("/customers/%20%20/risk-decisions")))
+				.andExpect(status().isBadRequest())
+				.andExpect(header().exists("X-Correlation-Id"))
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.message").value("Request validation failed."))
 				.andExpect(jsonPath("$.status").value(400));
 	}
 
