@@ -235,6 +235,7 @@ Review:
 
 ### Open Risks
 
+- EV2 Phase 1 - Idempotency and Contracts implementation exists on branch `feature/ev2-idempotency-contracts` at commit `88ac2f9` after Developer correction. Initial QA, Functional Tester, and Code Reviewer passed; initial Security Reviewer requested removal of sensitive success-log fields, which Developer corrected. The required second validation wave and final Guideline Compliance Reviewer gate are not complete because QA2, Functional2, Security2, and CodeReview2 subagents were interrupted by the external Codex usage limit before final verdicts.
 - Phase 6 validation is pending Developer completion, followed by QA, Functional Tester, Security Reviewer, Code Reviewer, and final Guideline Compliance Reviewer gates.
 - Port `8080` must be free for `docker compose up --build -d app` because the app service maps `127.0.0.1:8080:8080`. Use `./gradlew bootRun --args='--server.port=0'` for non-Docker local startup when needed.
 - Persistence tests are wired into the build and require the Docker Compose PostgreSQL service for local validation.
