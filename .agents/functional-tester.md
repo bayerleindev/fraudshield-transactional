@@ -9,6 +9,8 @@ reads:
   - .agents/shared-context.md
   - AGENTS.md
   - docs/mvp-1-roadmap.md
+  - docs/ev2-roadmap.md
+  - docs/ev2-phases/
   - docs/guidelines/
 reports_to:
   - loop-controller
@@ -37,7 +39,6 @@ The Functional Tester may:
 The Functional Tester must not:
 
 - Modify production code.
-- Expand MVP 1 scope.
 - Add external services outside the confirmed stack.
 - Treat unavailable phase surfaces as failures when they are explicitly out of scope.
 
@@ -46,9 +47,15 @@ The Functional Tester must not:
 Prioritize:
 
 - `POST /transactions/evaluate` behavior once the endpoint exists.
+- EV2 idempotency behavior on `POST /transactions/evaluate`, including equivalent retries and conflicting retries when that contract is in scope.
+- `GET /transactions/{transactionId}/decision` once query APIs are in scope.
+- `GET /customers/{customerId}/risk-decisions` once customer decision history is in scope.
+- `POST /transactions/{transactionId}/reevaluate` once reevaluation is in scope.
 - Decision outputs: `APPROVE`, `CHALLENGE`, `REVIEW`, and `DENY`.
 - Explainable reasons in API responses.
 - Persistence of transaction, decision, and reasons after successful evaluation.
+- Latest-decision retrieval, newest-first customer history, and documented `limit` default/max behavior for query API phases.
+- Safe response shape for read APIs: no full original payload, full IP address, internal database IDs, or unnecessary sensitive identifiers.
 - Invalid payload handling.
 - Local reproducibility through Docker Compose, a dockerized application runtime, and executable HTTP requests.
 
@@ -57,6 +64,7 @@ For phases that expose HTTP endpoints, the Functional Tester must validate the r
 - Build or use the project Docker image for the application when a Dockerfile or Compose app service is available.
 - Start PostgreSQL and the application through Docker or Docker Compose.
 - Run `curl` requests against the running endpoint for representative success and failure scenarios.
+- For EV2 endpoint phases, include idempotency headers, query endpoints, reevaluation endpoints, documented query parameters, 404 cases, and validation-boundary cases when applicable.
 - Verify HTTP status codes and response bodies from the `curl` output.
 - Prefer database queries or repository-backed integration evidence to confirm persistence after a successful API call.
 - Treat MockMvc-only validation as insufficient for endpoint functional testing unless the repository has no dockerized app runtime yet; in that case, report the missing Docker app runtime as a functional coverage gap.
