@@ -18,6 +18,14 @@ public class DomainException extends RuntimeException {
 		return new DomainException("CUSTOMER_NOT_FOUND", "Customer was not found.", HttpStatus.BAD_REQUEST);
 	}
 
+	public static DomainException customerResourceNotFound() {
+		return new DomainException("CUSTOMER_NOT_FOUND", "Customer was not found.", HttpStatus.NOT_FOUND);
+	}
+
+	public static DomainException transactionDecisionNotFound() {
+		return new DomainException("TRANSACTION_DECISION_NOT_FOUND", "Transaction decision was not found.", HttpStatus.NOT_FOUND);
+	}
+
 	public static DomainException duplicateTransaction() {
 		return new DomainException("DUPLICATE_TRANSACTION", "Transaction has already been evaluated.", HttpStatus.CONFLICT);
 	}

@@ -2,7 +2,7 @@ package com.fraudshield.transactional.transaction.api;
 
 import com.fraudshield.transactional.risk.domain.RiskAssessment;
 import com.fraudshield.transactional.risk.domain.RiskDecision;
-import com.fraudshield.transactional.risk.domain.RiskReasonCode;
+import com.fraudshield.transactional.risk.api.RiskReasonResponse;
 
 import java.time.Instant;
 import java.util.List;
@@ -21,21 +21,10 @@ public record TransactionEvaluationResponse(
 				assessment.decision(),
 				assessment.score(),
 				assessment.reasons().stream()
-						.map(reason -> new RiskReasonResponse(
-								reason.code(),
-								reason.description(),
-								reason.scoreImpact()
-						))
+						.map(RiskReasonResponse::from)
 						.toList(),
 				assessment.rulesVersion(),
 				assessment.evaluatedAt()
 		);
-	}
-
-	public record RiskReasonResponse(
-			RiskReasonCode code,
-			String description,
-			int scoreImpact
-	) {
 	}
 }

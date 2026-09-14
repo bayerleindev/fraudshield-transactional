@@ -1,5 +1,6 @@
 package com.fraudshield.transactional.transaction.api;
 
+import com.fraudshield.transactional.risk.api.RiskReasonResponse;
 import com.fraudshield.transactional.risk.domain.RiskAssessment;
 import com.fraudshield.transactional.risk.domain.RiskDecision;
 import com.fraudshield.transactional.risk.domain.RiskReason;
@@ -43,16 +44,16 @@ class TransactionEvaluationResponseTest {
 		assertThat(response.rulesVersion()).isEqualTo("v1");
 		assertThat(response.evaluatedAt()).isEqualTo(evaluatedAt);
 		assertThat(response.reasons())
-				.extracting(TransactionEvaluationResponse.RiskReasonResponse::code)
+				.extracting(RiskReasonResponse::code)
 				.containsExactly(RiskReasonCode.HIGH_AMOUNT, RiskReasonCode.NEW_BENEFICIARY);
 		assertThat(response.reasons())
-				.extracting(TransactionEvaluationResponse.RiskReasonResponse::description)
+				.extracting(RiskReasonResponse::description)
 				.containsExactly(
 						"Transaction amount is above the configured threshold.",
 						"Customer has no previous relationship with this beneficiary."
 				);
 		assertThat(response.reasons())
-				.extracting(TransactionEvaluationResponse.RiskReasonResponse::scoreImpact)
+				.extracting(RiskReasonResponse::scoreImpact)
 				.containsExactly(30, 25);
 	}
 }

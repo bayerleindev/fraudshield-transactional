@@ -205,6 +205,76 @@ Possible decisions:
 - `REVIEW`
 - `DENY`
 
+### Get Transaction Decision
+
+```text
+GET /transactions/{transactionId}/decision
+```
+
+Returns the latest stored decision for a transaction, including reasons, rule version, evaluation type, and evaluation timestamp. The response intentionally does not expose the original request payload, IP address, device ID, beneficiary ID, or internal database IDs.
+
+Example request:
+
+```bash
+curl -i http://localhost:8080/transactions/tx-demo-001/decision
+```
+
+Example response:
+
+```json
+{
+  "transactionId": "tx-demo-001",
+  "decision": "REVIEW",
+  "score": 75,
+  "reasons": [
+    {
+      "code": "HIGH_AMOUNT",
+      "description": "Transaction amount is above the configured threshold.",
+      "scoreImpact": 30
+    }
+  ],
+  "rulesVersion": "v1",
+  "evaluationType": "ORIGINAL",
+  "evaluatedAt": "2026-09-12T14:30:01Z"
+}
+```
+
+### Get Customer Risk Decisions
+
+```text
+GET /customers/{customerId}/risk-decisions?limit=20
+```
+
+Returns recent decisions for a customer in descending `evaluatedAt` order. The `limit` query parameter defaults to `20` and must be between `1` and `100`.
+
+Example request:
+
+```bash
+curl -i 'http://localhost:8080/customers/cus-demo-001/risk-decisions?limit=20'
+```
+
+Example response:
+
+```json
+[
+  {
+    "transactionId": "tx-demo-001",
+    "decision": "REVIEW",
+    "score": 75,
+    "reasons": [
+      {
+        "code": "HIGH_AMOUNT",
+        "description": "Transaction amount is above the configured threshold.",
+        "scoreImpact": 30
+      }
+    ],
+    "rulesVersion": "v1",
+    "evaluationType": "ORIGINAL",
+    "evaluatedAt": "2026-09-12T14:30:01Z"
+  }
+]
+```
+
 ### Error Responses
 
 Validation error example:
@@ -240,6 +310,7 @@ Common error codes:
 - `CUSTOMER_NOT_FOUND`: the requested customer does not exist.
 - `DUPLICATE_TRANSACTION`: the transaction was already evaluated.
 - `DUPLICATE_OR_INVALID_REFERENCE`: persistence failed because data conflicted with existing rows or references.
+- `TRANSACTION_DECISION_NOT_FOUND`: the requested transaction has no stored risk decision.
 
 ## Risk Rules
 

@@ -1,6 +1,7 @@
 package com.fraudshield.transactional.shared.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,6 +37,26 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 						"Transaction could not be persisted because it conflicts with existing data.",
 						HttpStatus.CONFLICT,
 						List.of()
+				));
+	}
+
+	@ExceptionHandler(ConstraintViolationException.class)
+	ResponseEntity<ApiErrorResponse> handleConstraintViolation(ConstraintViolationException exception) {
+		var fieldErrors = exception.getConstraintViolations().stream()
+				.map(violation -> new ApiFieldError(
+						violation.getPropertyPath().toString(),
+						violation.getMessage()
+				))
+				.sorted(Comparator.comparing(ApiFieldError::field))
+				.toList();
+
+		return ResponseEntity
+				.badRequest()
+				.body(ApiErrorResponse.from(
+						"VALIDATION_ERROR",
+						"Request validation failed.",
+						HttpStatus.BAD_REQUEST,
+						fieldErrors
 				));
 	}
 
